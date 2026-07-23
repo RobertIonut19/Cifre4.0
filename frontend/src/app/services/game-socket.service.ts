@@ -60,8 +60,7 @@ export class GameSocketService {
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
       return `${hostname}:8000`;
     }
-    // Default fallback when deployed online
-    return hostname.includes('onrender') ? hostname : `${hostname}`;
+    return 'cifre4-0.onrender.com';
   }
 
   constructor(private http: HttpClient) {}
