@@ -53,12 +53,12 @@ export class GameSocketService {
   public isConnected = signal<boolean>(false);
 
   private get backendHost(): string {
-    if ((window as any).BACKEND_URL) {
-      return (window as any).BACKEND_URL.replace(/^https?:\/\//, '').replace(/\/$/, '');
-    }
     const hostname = window.location.hostname || 'localhost';
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
       return `${hostname}:8000`;
+    }
+    if ((window as any).BACKEND_URL) {
+      return (window as any).BACKEND_URL.replace(/^https?:\/\//, '').replace(/\/$/, '');
     }
     return 'cifre4-0.onrender.com';
   }

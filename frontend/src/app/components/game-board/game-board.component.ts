@@ -21,20 +21,14 @@ export interface RoundGroup {
   template: `
     <div *ngIf="gameSocket.gameState() as state" class="board-wrapper animate-fade-in">
       
-      <!-- CUTE DOG RUNNING TURN ANNOUNCEMENT ANIMATION & DARK OVERLAY -->
-      <div *ngIf="showMyTurnBanner" class="dog-turn-backdrop" (click)="dismissTurnBanner()">
-        <div class="dog-runner-container">
-          <div class="speech-bubble">
-            <div class="bubble-title">
-              <i class="fa-solid fa-bullseye text-amber"></i> ESTE RÂNDUL TĂU! 🎯
-            </div>
-            <div class="bubble-text">Adversarul a mutat. Introdu numărul din 4 cifre pentru a ghici!</div>
-          </div>
-          <!-- Animated Dog Mascot -->
-          <div class="dog-mascot">
-            <div class="dog-emoji">🐶</div>
-            <div class="dog-paws">🐾 🐾</div>
-          </div>
+      <!-- FLOATING CORNER DOG ANNOUNCEMENT TOAST (BOTTOM RIGHT CORNER) -->
+      <div *ngIf="showMyTurnBanner" class="dog-corner-toast animate-bounce-in" (click)="dismissTurnBanner()">
+        <div class="speech-bubble-corner">
+          <div class="bubble-title"><i class="fa-solid fa-bullseye text-amber"></i> E rândul tău! 🎯</div>
+          <div class="bubble-text">{{ getOpponentLastGuessFeedback() }}</div>
+        </div>
+        <div class="dog-mascot-corner">
+          <span class="dog-emoji">🐶</span>
         </div>
       </div>
 
@@ -44,22 +38,34 @@ export interface RoundGroup {
           <i class="fa-solid fa-calculator text-amber"></i> CIFRE 4.0
         </div>
 
+        <!-- MY SECRET NUMBER (VISIBLE BY DEFAULT) -->
+        <div class="top-secret-bar">
+          <span class="secret-title">Numărul tău secret:</span>
+          <span class="secret-val-box">
+            <strong *ngIf="showMySecretInGame" class="secret-digits">{{ myPlayerInfo?.secret || '????' }}</strong>
+            <strong *ngIf="!showMySecretInGame" class="secret-masked">••••</strong>
+            <button class="btn-toggle-eye" (click)="showMySecretInGame = !showMySecretInGame" title="Afișează/Ascunde">
+              <i class="fa-solid" [class.fa-eye]="!showMySecretInGame" [class.fa-eye-slash]="showMySecretInGame"></i>
+            </button>
+          </span>
+        </div>
+
         <div class="room-info">
           <span class="room-code-badge" (click)="copyRoomCode()" title="Click pentru a copia codul">
-            <i class="fa-solid fa-key"></i> Cod Cameră: <strong>{{ state.room_id }}</strong>
+            <i class="fa-solid fa-key"></i> Cod: <strong>{{ state.room_id }}</strong>
             <i class="fa-solid fa-copy copy-icon"></i>
           </span>
           <span *ngIf="copiedCode" class="copied-toast">Copiat!</span>
         </div>
 
         <button class="btn btn-secondary btn-sm" (click)="gameSocket.disconnect()">
-          <i class="fa-solid fa-right-from-bracket"></i> Părăsește Camera
+          <i class="fa-solid fa-right-from-bracket"></i> Ieși
         </button>
       </header>
 
       <!-- Main Layout Grid -->
       <div class="game-grid">
-        <!-- Left Column: Main Game Console & History -->
+        <!-- Left / Core Section -->
         <div class="left-section">
           
           <!-- STATE 1: WAITING FOR PLAYERS -->
@@ -78,7 +84,7 @@ export interface RoundGroup {
                   (Meciul #{{ state.past_games_history.length + 1 }})
                 </span>
               </h2>
-              <p class="text-muted">Alege un număr din 4 cifre (ex: 0000 - 9999). Adversarul tău va încerca să îl ghicească!</p>
+              <p class="text-muted">Alege un număr din 4 cifre (0000 - 9999). Pe telefon se deschide tastatura numerică!</p>
             </div>
 
             <div *ngIf="!myPlayerInfo?.has_secret; else waitingOpponentSecret" class="secret-form-box">
@@ -86,7 +92,9 @@ export interface RoundGroup {
               <div class="secret-input-row">
                 <div class="secret-input-wrapper">
                   <input 
-                    [type]="showSecret ? 'text' : 'password'" 
+                    [type]="showSecret ? 'tel' : 'password'" 
+                    inputmode="numeric"
+                    pattern="[0-9]*"
                     class="form-input secret-input-field" 
                     placeholder="0000" 
                     [(ngModel)]="mySecretInput" 
@@ -106,7 +114,7 @@ export interface RoundGroup {
               <div class="secret-ready-box animate-fade-in">
                 <i class="fa-solid fa-circle-check text-green icon-ready"></i>
                 <div class="ready-text">
-                  <h3>Numărul tău secret a fost înregistrat cu succes!</h3>
+                  <h3>Numărul tău secret a fost salvat!</h3>
                   <p class="text-muted">În așteptare ca și celălalt jucător să își aleagă numărul...</p>
                 </div>
               </div>
@@ -116,62 +124,83 @@ export interface RoundGroup {
           <!-- STATE 3 & 4: PLAYING & FINISHED -->
           <div *ngIf="state.state === 'PLAYING' || state.state === 'FINISHED'" class="main-play-container">
             
-            <!-- SECTION 1 (TOP): MY SECRET NUMBER -->
-            <div class="glass-panel section-card section-secret-status">
-              <div class="section-badge"><i class="fa-solid fa-shield-halved"></i> SECTOR 1: NUMĂRUL TĂU SECRET</div>
-              <div class="secret-display-box">
-                <div class="secret-label">Numărul tău secret păstrat:</div>
-                <div class="secret-value">
-                  <span *ngIf="showMySecretInGame" class="secret-digits">{{ myPlayerInfo?.secret || '????' }}</span>
-                  <span *ngIf="!showMySecretInGame" class="secret-masked">••••</span>
-                  <button class="btn-toggle-eye" (click)="showMySecretInGame = !showMySecretInGame">
-                    <i class="fa-solid" [class.fa-eye]="!showMySecretInGame" [class.fa-eye-slash]="showMySecretInGame"></i>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <!-- VISUAL DIVIDER -->
-            <div class="section-divider">
-              <span><i class="fa-solid fa-arrows-up-down"></i> CONSOLA INTERACTIVĂ DE JOC <i class="fa-solid fa-arrows-up-down"></i></span>
-            </div>
-
-            <!-- SECTION 2 (MIDDLE): GUESSING ACTION CONSOLE -->
-            <div *ngIf="state.state === 'PLAYING'" class="glass-panel section-card section-guessing-console" [class.turn-mine-card]="isMyTurn()">
-              <div class="section-badge badge-action"><i class="fa-solid fa-keyboard"></i> SECTOR 2: CONSOLĂ DE GHICIT (RUNDA {{ getCurrentRoundNumber() }})</div>
+            <!-- SIDE-BY-SIDE CORE CONSOLE: GUESS INPUT (LEFT) + 2-COLUMN GUESSES TABLE (RIGHT) -->
+            <div class="play-split-row">
               
-              <!-- Turn Status Header -->
-              <div class="turn-status-header" [class.is-mine]="isMyTurn()">
-                <div class="turn-title">
-                  <span *ngIf="isMyTurn()"><i class="fa-solid fa-crosshair text-amber"></i> RÂNDUL TĂU SĂ GHICEȘTI!</span>
-                  <span *ngIf="!isMyTurn()"><i class="fa-solid fa-hourglass-half fa-spin"></i> RÂNDUL LUI {{ state.current_turn_name?.toUpperCase() }}...</span>
+              <!-- LEFT SUB-CARD: COMPACT GUESS INPUT CONSOLE -->
+              <div class="glass-panel guess-console-card" [class.turn-mine-card]="isMyTurn()">
+                <div class="turn-orange-title text-amber">
+                  <span *ngIf="isMyTurn()"><i class="fa-solid fa-crosshair"></i> RÂNDUL TĂU SĂ GHICEȘTI!</span>
+                  <span *ngIf="!isMyTurn()"><i class="fa-solid fa-hourglass-half fa-spin"></i> RÂNDUL ADVERSARULUI...</span>
                 </div>
-                <div class="turn-desc">
-                  Runda {{ getCurrentRoundNumber() }} (Pasul {{ getTurnInRound() }}/2). Ambii jucători au ocazia să ghicească pe rundă.
+                
+                <div class="round-indicator">Runda {{ getCurrentRoundNumber() }}</div>
+
+                <div class="guess-input-box" [class.opacity-disabled]="!isMyTurn()">
+                  <div class="guess-input-wrapper">
+                    <input 
+                      type="tel"
+                      inputmode="numeric"
+                      pattern="[0-9]*"
+                      id="guessNumInput"
+                      class="form-input guess-input" 
+                      placeholder="0000" 
+                      [(ngModel)]="guessInput" 
+                      maxlength="4"
+                      [disabled]="!isMyTurn()"
+                      (keyup.enter)="submitGuess()">
+                    <button class="btn btn-primary btn-guess" (click)="submitGuess()" [disabled]="!isMyTurn() || !isValidSecret(guessInput)">
+                      <i class="fa-solid fa-paper-plane"></i> Ghicește
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <!-- Guess Controls Form -->
-              <div class="guess-input-box" [class.opacity-disabled]="!isMyTurn()">
-                <label for="guessNumInput"><i class="fa-solid fa-lightbulb"></i> Introdu numărul din 4 cifre pentru adversar:</label>
-                <div class="guess-controls">
-                  <input 
-                    type="text" 
-                    id="guessNumInput"
-                    class="form-input guess-input" 
-                    placeholder="0000" 
-                    [(ngModel)]="guessInput" 
-                    maxlength="4"
-                    [disabled]="!isMyTurn()"
-                    (keyup.enter)="submitGuess()">
-                  <button class="btn btn-primary btn-guess" (click)="submitGuess()" [disabled]="!isMyTurn() || !isValidSecret(guessInput)">
-                    <i class="fa-solid fa-paper-plane"></i> Trimite Încercarea
-                  </button>
+              <!-- RIGHT SUB-CARD: DUAL COLUMN TABLE (YOU ON LEFT | OPPONENT DIMMED ON RIGHT) -->
+              <div class="glass-panel dual-guesses-card">
+                <div class="dual-guesses-header">
+                  <div class="col-head my-head text-amber"><i class="fa-solid fa-user-check"></i> Tu</div>
+                  <div class="col-head opp-head text-muted"><i class="fa-solid fa-user"></i> Adversar</div>
+                </div>
+
+                <div *ngIf="getRoundGroups().length === 0" class="no-my-guesses">
+                  <p>Nicio încercare făcută încă.</p>
+                </div>
+
+                <div class="dual-guesses-body" *ngIf="getRoundGroups().length > 0">
+                  <div *ngFor="let rg of getRoundGroups()" class="dual-row">
+                    
+                    <!-- Left Column: My Guess (Vibrant 5 Colors) -->
+                    <div class="dual-col col-mine">
+                      <span class="rg-num">{{ rg.roundNumber }}.</span>
+                      <ng-container *ngIf="getMyGuessForRound(rg) as mg; else noMyGuess">
+                        <span class="mg-num">{{ mg.guess }}</span>
+                        <span class="mg-score-digit" [class]="'score-color-' + mg.exact_matches">{{ mg.exact_matches }}</span>
+                      </ng-container>
+                      <ng-template #noMyGuess>
+                        <span class="pending-text">-</span>
+                      </ng-template>
+                    </div>
+
+                    <!-- Right Column: Opponent Guess (Dimmed) -->
+                    <div class="dual-col col-opponent">
+                      <span class="rg-num">{{ rg.roundNumber }}.</span>
+                      <ng-container *ngIf="getOpponentGuessForRound(rg) as og; else noOpponentGuess">
+                        <span class="mg-num opp-num">{{ og.guess }}</span>
+                        <span class="mg-score-digit opp-score" [class]="'score-color-' + og.exact_matches">{{ og.exact_matches }}</span>
+                      </ng-container>
+                      <ng-template #noOpponentGuess>
+                        <span class="pending-text">-</span>
+                      </ng-template>
+                    </div>
+
+                  </div>
                 </div>
               </div>
+
             </div>
 
-            <!-- GAME OVER / WINNER OR TIE BOX WITH "JOACĂ DIN NOU" BUTTON -->
+            <!-- GAME OVER / WINNER OR TIE BOX -->
             <div *ngIf="state.state === 'FINISHED'" class="winner-card animate-fade-in" [class.tie-card]="state.winner === 'TIE'">
               <div *ngIf="state.winner === 'TIE'; else playerWinnerBlock">
                 <i class="fa-solid fa-handshake winner-trophy text-amber"></i>
@@ -204,83 +233,17 @@ export interface RoundGroup {
               </div>
             </div>
 
-            <!-- VISUAL DIVIDER BEFORE HISTORY -->
-            <div class="section-divider">
-              <span><i class="fa-solid fa-table-list"></i> ISTORIC PE RUNDE (TIMP DE GÂNDIRE & REZULTATE)</span>
-            </div>
-
-            <!-- SECTION 3 (BOTTOM): ROUND-BASED HISTORY WITH TIME TAKEN -->
-            <div class="glass-panel section-card section-history-rounds">
-              <div class="section-badge"><i class="fa-solid fa-list-check"></i> SECTOR 3: REZULTATE RUNDE SPILTUITE</div>
-              
-              <div *ngIf="getRoundGroups().length === 0" class="no-history">
-                <p>Nicio rundă completată încă. Începe Runda 1!</p>
-              </div>
-
-              <!-- Round Cards Display -->
-              <div class="rounds-container" *ngIf="getRoundGroups().length > 0">
-                <div *ngFor="let rg of getRoundGroups()" class="round-card" [class.round-complete]="rg.isComplete">
-                  <div class="round-card-header">
-                    <span class="round-title"><i class="fa-solid fa-layer-group"></i> RUNDA {{ rg.roundNumber }}</span>
-                    <span class="round-status-tag" [class.tag-done]="rg.isComplete">
-                      {{ rg.isComplete ? 'Rundă Încheiată' : 'Rundă în Curs' }}
-                    </span>
-                  </div>
-
-                  <!-- Pair of Guesses in this Round (Player 1 & Player 2) -->
-                  <div class="round-pair-grid">
-                    <!-- Player 1 Guess Column -->
-                    <div class="player-guess-box">
-                      <div class="p-header"><i class="fa-solid fa-user"></i> {{ rg.p1Name }}</div>
-                      <div *ngIf="rg.p1Guess" class="p-body">
-                        <div class="guess-digits-time">
-                          <span class="guess-num-badge">{{ rg.p1Guess.guess }}</span>
-                          <span *ngIf="rg.p1Guess.time_taken_seconds !== undefined" class="time-taken-badge" title="Timp de gândire pentru această mutare">
-                            <i class="fa-solid fa-stopwatch"></i> {{ rg.p1Guess.time_taken_seconds }}s
-                          </span>
-                        </div>
-                        <span class="badge" [class.badge-green]="rg.p1Guess.exact_matches > 0" [class.badge-red]="rg.p1Guess.exact_matches === 0">
-                          {{ rg.p1Guess.exact_matches }} {{ rg.p1Guess.exact_matches === 1 ? 'cifră' : 'cifre' }} corect
-                        </span>
-                      </div>
-                      <div *ngIf="!rg.p1Guess" class="p-waiting">În așteptarea mutării...</div>
-                    </div>
-
-                    <div class="vs-badge">VS</div>
-
-                    <!-- Player 2 Guess Column -->
-                    <div class="player-guess-box">
-                      <div class="p-header"><i class="fa-solid fa-user"></i> {{ rg.p2Name }}</div>
-                      <div *ngIf="rg.p2Guess" class="p-body">
-                        <div class="guess-digits-time">
-                          <span class="guess-num-badge">{{ rg.p2Guess.guess }}</span>
-                          <span *ngIf="rg.p2Guess.time_taken_seconds !== undefined" class="time-taken-badge" title="Timp de gândire pentru această mutare">
-                            <i class="fa-solid fa-stopwatch"></i> {{ rg.p2Guess.time_taken_seconds }}s
-                          </span>
-                        </div>
-                        <span class="badge" [class.badge-green]="rg.p2Guess.exact_matches > 0" [class.badge-red]="rg.p2Guess.exact_matches === 0">
-                          {{ rg.p2Guess.exact_matches }} {{ rg.p2Guess.exact_matches === 1 ? 'cifră' : 'cifre' }} corect
-                        </span>
-                      </div>
-                      <div *ngIf="!rg.p2Guess" class="p-waiting">
-                        <i class="fa-solid fa-clock"></i> Urmează să ghicească...
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
 
-          <!-- Notes Panel Component -->
+          <!-- Notes Panel Component (4 Columns in 1 Row) -->
           <app-notes-panel></app-notes-panel>
         </div>
 
-        <!-- Right Section: Chat & Players list & Past Games History -->
+        <!-- Right Section: Chat & Players list -->
         <div class="right-section">
-          <!-- Players Box -->
+          <!-- Players Box ("Jucători") -->
           <div class="glass-panel players-card">
-            <h4><i class="fa-solid fa-users text-amber"></i> Jucători în Cameră</h4>
+            <h4><i class="fa-solid fa-users text-amber"></i> Jucători</h4>
             <div class="players-list">
               <div *ngFor="let pid of state.player_order" class="player-item" [class.is-active-turn]="state.current_turn === pid">
                 <div class="player-avatar">
@@ -301,9 +264,9 @@ export interface RoundGroup {
           <!-- Live Chat Component -->
           <app-chat></app-chat>
 
-          <!-- PAST GAMES CUMULATIVE HISTORY (CAND SE JOACA JOCUL 2, 3 ETC.) -->
+          <!-- PAST GAMES CUMULATIVE HISTORY -->
           <div *ngIf="state.past_games_history && state.past_games_history.length > 0" class="glass-panel past-games-card animate-fade-in">
-            <h4><i class="fa-solid fa-trophy text-amber"></i> Istoric Meciuri Anterioare</h4>
+            <h4><i class="fa-solid fa-trophy text-amber"></i> Meciuri Anterioare</h4>
             
             <div class="past-games-list">
               <div *ngFor="let g of state.past_games_history" class="past-game-item">
@@ -330,71 +293,41 @@ export interface RoundGroup {
       position: relative;
     }
 
-    /* DARK BACKDROP & RUNNING DOG ANIMATION */
-    .dog-turn-backdrop {
+    /* FLOATING CORNER DOG ANNOUNCEMENT TOAST (FIXED TO BROWSER VIEWPORT CORNER) */
+    .dog-corner-toast {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.65);
-      backdrop-filter: blur(4px);
-      z-index: 99999;
+      bottom: 16px;
+      right: 20px;
+      z-index: 999999;
       cursor: pointer;
-      overflow: hidden;
-    }
-
-    .dog-runner-container {
-      position: absolute;
-      top: 45%;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      animation: dogRunAcross 2.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+      align-items: flex-end;
+      animation: cornerPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
-    @keyframes dogRunAcross {
-      0% {
-        left: -220px;
-        opacity: 0;
-        transform: translateY(-50%) scale(0.8);
-      }
-      35% {
-        left: 50%;
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1.15);
-      }
-      70% {
-        left: 50%;
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1.15);
-      }
-      100% {
-        left: 125%;
-        opacity: 0;
-        transform: translate(0, -50%) scale(0.9);
-      }
+    @keyframes cornerPop {
+      0% { opacity: 0; transform: translateY(40px) scale(0.6); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
     }
 
-    .speech-bubble {
+    .speech-bubble-corner {
       background: #ffffff;
       border: 3px solid var(--accent-amber);
       border-radius: 18px;
-      padding: 14px 24px;
-      text-align: center;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      padding: 14px 22px;
+      box-shadow: 0 12px 35px rgba(60, 45, 35, 0.25);
+      margin-bottom: 8px;
       position: relative;
-      margin-bottom: 12px;
-      animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      max-width: 320px;
     }
 
-    .speech-bubble::after {
+    .speech-bubble-corner::after {
       content: '';
       position: absolute;
-      bottom: -12px;
-      left: 50%;
-      transform: translateX(-50%);
-      border-width: 12px 12px 0;
+      bottom: -10px;
+      right: 32px;
+      border-width: 10px 10px 0;
       border-style: solid;
       border-color: var(--accent-amber) transparent;
       display: block;
@@ -402,54 +335,85 @@ export interface RoundGroup {
     }
 
     .bubble-title {
-      font-size: 1.5rem;
+      font-size: 1.35rem;
       font-weight: 800;
       color: var(--accent-amber);
       margin-bottom: 4px;
     }
 
     .bubble-text {
-      font-size: 0.95rem;
-      font-weight: 600;
+      font-size: 1.05rem;
+      font-weight: 700;
       color: var(--text-main);
     }
 
-    .dog-mascot {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      animation: dogBounce 0.3s infinite alternate ease-in-out;
+    .dog-mascot-corner {
+      margin-right: 20px;
+      animation: dogBounce 0.35s infinite alternate ease-in-out;
     }
 
     @keyframes dogBounce {
       from { transform: translateY(0); }
-      to { transform: translateY(-10px); }
+      to { transform: translateY(-8px); }
     }
 
     .dog-emoji {
-      font-size: 5rem;
+      font-size: 5.5rem;
       line-height: 1;
-      filter: drop-shadow(0 8px 16px rgba(0,0,0,0.3));
-    }
-
-    .dog-paws {
-      font-size: 1.4rem;
-      margin-top: 4px;
+      filter: drop-shadow(0 6px 16px rgba(0,0,0,0.25));
     }
 
     .top-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 14px 24px;
-      margin-bottom: 20px;
+      padding: 12px 20px;
+      margin-bottom: 16px;
     }
 
     .brand {
-      font-size: 1.4rem;
+      font-size: 1.3rem;
       font-weight: 800;
       letter-spacing: 1px;
       color: var(--text-main);
+    }
+
+    .top-secret-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #fbf9f5;
+      border: 1px solid var(--border-color);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+    }
+
+    .secret-title {
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .secret-val-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .secret-digits, .secret-masked {
+      font-family: 'Outfit', monospace;
+      font-size: 1.2rem;
+      font-weight: 800;
+      letter-spacing: 3px;
+      color: var(--accent-amber);
+    }
+
+    .btn-toggle-eye {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 1rem;
     }
 
     .text-amber {
@@ -463,15 +427,14 @@ export interface RoundGroup {
     .room-code-badge {
       background: #f1ece6;
       border: 1px dashed var(--accent-amber);
-      padding: 8px 16px;
+      padding: 6px 14px;
       border-radius: 20px;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       color: var(--text-main);
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      transition: background 0.2s;
+      gap: 6px;
     }
 
     .room-code-badge:hover {
@@ -500,25 +463,29 @@ export interface RoundGroup {
     .game-grid {
       display: grid;
       grid-template-columns: 1fr 340px;
-      gap: 20px;
+      gap: 16px;
     }
 
     @media (max-width: 900px) {
       .game-grid {
         grid-template-columns: 1fr;
       }
+      .top-bar {
+        flex-direction: column;
+        gap: 10px;
+      }
     }
 
     .left-section {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 16px;
     }
 
     .right-section {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 16px;
     }
 
     .state-card {
@@ -633,153 +600,67 @@ export interface RoundGroup {
       gap: 16px;
     }
 
-    .section-card {
-      padding: 20px;
-      position: relative;
+    /* PLAY SPLIT ROW: CONSOLE (LEFT) + DUAL COLUMN TABLE (RIGHT) SIDE BY SIDE */
+    .play-split-row {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 16px;
     }
 
-    .section-badge {
-      font-size: 0.75rem;
-      font-weight: 800;
-      letter-spacing: 1px;
-      color: var(--text-muted);
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
+    @media (max-width: 768px) {
+      .play-split-row {
+        grid-template-columns: 1fr;
+      }
     }
 
-    .badge-action {
-      color: var(--accent-amber);
-    }
-
-    .section-secret-status {
-      background: #fbf9f5;
-      border: 1px solid #e8e1d7;
-    }
-
-    .secret-display-box {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: #ffffff;
-      padding: 12px 20px;
-      border-radius: var(--radius-md);
-      border: 1px solid var(--border-color);
-    }
-
-    .secret-label {
-      font-weight: 600;
-      color: var(--text-main);
-    }
-
-    .secret-value {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-size: 1.5rem;
-      font-weight: 800;
-      font-family: 'Outfit', monospace;
-      color: var(--accent-amber);
-      letter-spacing: 4px;
-    }
-
-    .btn-toggle-eye {
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      font-size: 1.1rem;
-    }
-
-    .section-divider {
-      text-align: center;
-      margin: 4px 0;
-      position: relative;
-    }
-
-    .section-divider::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 0;
-      right: 0;
-      border-top: 2px dashed #e2d9ce;
-      z-index: 1;
-    }
-
-    .section-divider span {
-      position: relative;
-      z-index: 2;
-      background: var(--bg-primary);
-      padding: 4px 16px;
-      font-size: 0.75rem;
-      font-weight: 800;
-      color: #928377;
-      letter-spacing: 1px;
-    }
-
-    .section-guessing-console {
-      background: #ffffff;
+    /* ULTRA MINIMAL GUESS CONSOLE CARD */
+    .guess-console-card {
+      padding: 14px 16px;
       border: 2px solid var(--border-color);
-      box-shadow: 0 10px 25px rgba(60, 45, 35, 0.08);
-      transition: all 0.3s;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 8px;
     }
 
-    .section-guessing-console.turn-mine-card {
+    .guess-console-card.turn-mine-card {
       border-color: var(--accent-amber);
       background: #fffdf9;
-      box-shadow: 0 10px 30px rgba(217, 119, 6, 0.15);
+      box-shadow: 0 6px 20px rgba(217, 119, 6, 0.15);
     }
 
-    .turn-status-header {
-      padding: 12px 16px;
-      background: #f1ece6;
-      border-radius: var(--radius-md);
-      margin-bottom: 16px;
-    }
-
-    .turn-status-header.is-mine {
-      background: #fef3c7;
-      border: 1px solid #fde68a;
-    }
-
-    .turn-title {
-      font-size: 1.15rem;
+    .turn-orange-title {
+      font-size: 1.05rem;
       font-weight: 800;
-      color: var(--text-main);
+      color: var(--accent-amber) !important;
       margin-bottom: 2px;
     }
 
-    .turn-desc {
+    .round-indicator {
       font-size: 0.85rem;
+      font-weight: 700;
       color: var(--text-muted);
     }
 
-    .guess-input-box label {
-      display: block;
-      font-weight: 700;
-      margin-bottom: 8px;
-      color: var(--text-main);
-    }
-
-    .guess-controls {
+    .guess-input-wrapper {
       display: flex;
-      gap: 12px;
+      flex-direction: column;
+      gap: 8px;
     }
 
     .guess-input {
-      font-size: 1.6rem;
+      font-size: 1.8rem;
       font-weight: 800;
       letter-spacing: 6px;
-      max-width: 200px;
       text-align: center;
       background: #ffffff;
+      padding: 8px;
     }
 
     .btn-guess {
-      padding: 12px 24px;
-      font-size: 1rem;
+      width: 100%;
+      padding: 10px;
+      font-size: 0.95rem;
     }
 
     .opacity-disabled {
@@ -787,123 +668,137 @@ export interface RoundGroup {
       pointer-events: none;
     }
 
-    .rounds-container {
+    /* DUAL GUESSES CARD (YOU VIBRANT ON LEFT | OPPONENT DIMMED ON RIGHT) */
+    .dual-guesses-card {
+      padding: 14px 16px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
-      max-height: 380px;
+    }
+
+    .dual-guesses-header {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .col-head {
+      font-size: 0.9rem;
+      font-weight: 800;
+    }
+
+    .no-my-guesses {
+      margin: auto;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      font-style: italic;
+      padding: 16px 10px;
+    }
+
+    .dual-guesses-body {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-height: 260px;
       overflow-y: auto;
       padding-right: 4px;
     }
 
-    .round-card {
-      background: #fbf9f5;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      padding: 14px;
-    }
-
-    .round-card.round-complete {
-      background: #ffffff;
-      border-color: #dcd4c9;
-    }
-
-    .round-card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-      padding-bottom: 8px;
+    .dual-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      padding: 4px 0;
       border-bottom: 1px solid var(--border-subtle);
     }
 
-    .round-title {
-      font-size: 0.95rem;
-      font-weight: 800;
-      color: var(--text-main);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .round-status-tag {
-      font-size: 0.75rem;
-      font-weight: 700;
-      padding: 2px 10px;
-      border-radius: 12px;
-      background: #f1ece6;
-      color: var(--text-muted);
-    }
-
-    .round-status-tag.tag-done {
-      background: var(--color-green-bg);
-      color: var(--color-green);
-    }
-
-    .round-pair-grid {
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .player-guess-box {
-      background: #ffffff;
-      border: 1px solid var(--border-subtle);
-      border-radius: 8px;
-      padding: 10px 14px;
-    }
-
-    .p-header {
-      font-size: 0.85rem;
-      font-weight: 700;
-      color: var(--text-muted);
-      margin-bottom: 6px;
-    }
-
-    .p-body {
+    .dual-col {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 8px;
+      padding: 2px 6px;
+      border-radius: 4px;
     }
 
-    .guess-digits-time {
-      display: flex;
-      align-items: center;
-      gap: 8px;
+    .col-mine {
+      opacity: 1; /* VIBRANT FOR PLAYER */
     }
 
-    .guess-num-badge {
+    .col-opponent {
+      opacity: 0.65; /* DIMMED FOR OPPONENT */
+      background: rgba(0, 0, 0, 0.02);
+    }
+
+    .rg-num {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      width: 22px;
+    }
+
+    .mg-num {
       font-family: 'Outfit', monospace;
-      font-size: 1.2rem;
+      font-size: 1.15rem;
       font-weight: 800;
       letter-spacing: 2px;
-      color: var(--accent-amber);
+      color: var(--text-main);
+      flex: 1;
     }
 
-    .time-taken-badge {
-      font-size: 0.75rem;
-      font-weight: 700;
-      color: #92400e;
-      background: #fef3c7;
-      padding: 2px 6px;
-      border-radius: 6px;
+    .opp-num {
+      color: #64748b;
     }
 
-    .p-waiting {
-      font-size: 0.85rem;
+    .pending-text {
       color: var(--text-light);
+      font-size: 0.8rem;
       font-style: italic;
     }
 
-    .vs-badge {
-      font-size: 0.75rem;
+    /* 5 DYNAMIC SCORE COLORS (0=RED, 1=ORANGE, 2=YELLOW, 3=LIGHT GREEN, 4=DARK GREEN) */
+    .mg-score-digit {
+      font-family: 'Outfit', sans-serif;
       font-weight: 800;
-      color: #b0a396;
-      background: #f1ece6;
-      padding: 4px 8px;
+      font-size: 0.9rem;
+      width: 26px;
+      height: 26px;
       border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .score-color-0 {
+      background: #fee2e2;
+      color: #dc2626;
+      border: 1px solid #fca5a5;
+    }
+
+    .score-color-1 {
+      background: #ffedd5;
+      color: #ea580c;
+      border: 1px solid #fed7aa;
+    }
+
+    .score-color-2 {
+      background: #fef9c3;
+      color: #ca8a04;
+      border: 1px solid #fef08a;
+    }
+
+    .score-color-3 {
+      background: #ecfccb;
+      color: #65a30d;
+      border: 1px solid #bef264;
+    }
+
+    .score-color-4 {
+      background: #dcfce7;
+      color: #15803d;
+      border: 1px solid #86efac;
     }
 
     .winner-card {
@@ -1030,7 +925,7 @@ export interface RoundGroup {
       display: flex;
       flex-direction: column;
       gap: 8px;
-      max-height: 220px;
+      max-height: 180px;
       overflow-y: auto;
     }
 
@@ -1038,25 +933,25 @@ export interface RoundGroup {
       background: #fbf9f5;
       border: 1px solid var(--border-subtle);
       border-radius: 8px;
-      padding: 10px 12px;
+      padding: 8px 10px;
     }
 
     .pg-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 0.9rem;
-      margin-bottom: 4px;
+      font-size: 0.85rem;
+      margin-bottom: 2px;
     }
 
     .pg-winner-badge {
       font-weight: 700;
       color: var(--accent-amber);
-      font-size: 0.85rem;
+      font-size: 0.8rem;
     }
 
     .pg-details {
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       color: var(--text-muted);
     }
   `]
@@ -1064,7 +959,7 @@ export interface RoundGroup {
 export class GameBoardComponent implements DoCheck {
   mySecretInput: string = '';
   showSecret: boolean = false;
-  showMySecretInGame: boolean = false;
+  showMySecretInGame: boolean = true; // VISIBLE BY DEFAULT
   guessInput: string = '';
   copiedCode: boolean = false;
 
@@ -1087,10 +982,9 @@ export class GameBoardComponent implements DoCheck {
     if (this.bannerTimer) {
       clearTimeout(this.bannerTimer);
     }
-    // Auto-hide dog animation pop-up after 2.3 seconds
     this.bannerTimer = setTimeout(() => {
       this.showMyTurnBanner = false;
-    }, 2300);
+    }, 4000);
   }
 
   dismissTurnBanner() {
@@ -1141,6 +1035,41 @@ export class GameBoardComponent implements DoCheck {
   getTurnInRound(): number {
     const history = this.gameSocket.gameState()?.guesses_history || [];
     return (history.length % 2) + 1;
+  }
+
+  getOpponentLastGuessFeedback(): string {
+    const state = this.gameSocket.gameState();
+    const myId = this.gameSocket.playerId();
+    if (!state || !myId) return 'Adversarul a mutat. Este rândul tău!';
+
+    const history = state.guesses_history || [];
+    const oppGuesses = history.filter(g => g.player_id !== myId);
+    if (oppGuesses.length > 0) {
+      const lastOppGuess = oppGuesses[oppGuesses.length - 1];
+      const count = lastOppGuess.exact_matches;
+      return `Adversarul a ghicit ${count} ${count === 1 ? 'cifră' : 'cifre'}.`;
+    }
+    return 'Adversarul a mutat. Este rândul tău!';
+  }
+
+  getMyGuessForRound(rg: RoundGroup) {
+    const state = this.gameSocket.gameState();
+    const myId = this.gameSocket.playerId();
+    if (!state || !myId) return null;
+
+    const porder = state.player_order || [];
+    const isP1 = porder[0] === myId;
+    return isP1 ? rg.p1Guess : rg.p2Guess;
+  }
+
+  getOpponentGuessForRound(rg: RoundGroup) {
+    const state = this.gameSocket.gameState();
+    const myId = this.gameSocket.playerId();
+    if (!state || !myId) return null;
+
+    const porder = state.player_order || [];
+    const isP1 = porder[0] === myId;
+    return isP1 ? rg.p2Guess : rg.p1Guess;
   }
 
   getRoundGroups(): RoundGroup[] {
