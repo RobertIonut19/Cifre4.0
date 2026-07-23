@@ -13,22 +13,21 @@ export type DigitState = 'NEUTRAL' | 'RED' | 'GREEN';
       <div class="notes-header">
         <h3><i class="fa-solid fa-clipboard-list text-amber"></i> Notițe & Matrice de Eliminare</h3>
         <button class="btn btn-secondary btn-sm" (click)="resetNotes()">
-          <i class="fa-solid fa-rotate-left"></i> Resetează Notițe
+          <i class="fa-solid fa-rotate-left"></i> Resetează
         </button>
       </div>
 
       <p class="notes-hint">
-        Bifează rapid cifrele pentru fiecare dintre cele 4 poziții ale numărului adversarului:
-        <span class="legend-red"><i class="fa-solid fa-circle-xmark"></i> Roșu = Eliminată</span> | 
-        <span class="legend-green"><i class="fa-solid fa-circle-check"></i> Verde = Posibilă</span>
+        Bifează rapid cifrele per poziție: 
+        <span class="legend-red"><i class="fa-solid fa-circle-xmark"></i> Roșu = Eliminat</span> | 
+        <span class="legend-green"><i class="fa-solid fa-circle-check"></i> Verde = Posibil</span>
       </p>
 
-      <!-- Matrix of 4 Positions -->
+      <!-- Matrix of 4 Positions Side-by-Side in 1 Row -->
       <div class="positions-grid">
         <div *ngFor="let posIdx of [0, 1, 2, 3]" class="position-card">
           <div class="position-title">
-            <span>Poziția {{ posIdx + 1 }}</span>
-            <span class="pos-badge">Cifra {{ posIdx + 1 }}</span>
+            <span>Poz {{ posIdx + 1 }}</span>
           </div>
 
           <!-- Quick Toggle Digit Buttons 0-9 -->
@@ -39,16 +38,16 @@ export type DigitState = 'NEUTRAL' | 'RED' | 'GREEN';
               [class.state-red]="matrix[posIdx][digit] === 'RED'"
               [class.state-green]="matrix[posIdx][digit] === 'GREEN'"
               (click)="toggleDigitState(posIdx, digit)"
-              title="Click pentru comutare: Neutru -> Roșu (Eliminat) -> Verde (Posibil) -> Neutru">
+              title="Click: Neutru -> Roșu -> Verde -> Neutru">
               {{ digit }}
             </button>
           </div>
 
-          <!-- Two Columns: RED (Eliminated) vs GREEN (Possible) -->
+          <!-- Two Columns: RED vs GREEN -->
           <div class="columns-split">
             <!-- Red Column -->
             <div class="column col-red">
-              <div class="col-header"><i class="fa-solid fa-ban"></i> Eliminate</div>
+              <div class="col-header"><i class="fa-solid fa-ban"></i> Eliminat</div>
               <div class="digits-list">
                 <span *ngFor="let d of getDigitsInState(posIdx, 'RED')" class="tag tag-red">
                   {{ d }}
@@ -59,7 +58,7 @@ export type DigitState = 'NEUTRAL' | 'RED' | 'GREEN';
 
             <!-- Green Column -->
             <div class="column col-green">
-              <div class="col-header"><i class="fa-solid fa-check"></i> Posibile</div>
+              <div class="col-header"><i class="fa-solid fa-check"></i> Posibil</div>
               <div class="digits-list">
                 <span *ngFor="let d of getDigitsInState(posIdx, 'GREEN')" class="tag tag-green">
                   {{ d }}
@@ -77,8 +76,8 @@ export type DigitState = 'NEUTRAL' | 'RED' | 'GREEN';
         <textarea 
           id="scratchNotes"
           class="form-input scratchpad-textarea" 
-          rows="3" 
-          placeholder="Scrie aici deducțiile tale, combinații posibile..."
+          rows="2" 
+          placeholder="Scrie deducțiile tale aici..."
           [(ngModel)]="freeTextNotes"
           (ngModelChange)="saveToLocalStorage()">
         </textarea>
@@ -87,22 +86,22 @@ export type DigitState = 'NEUTRAL' | 'RED' | 'GREEN';
   `,
   styles: [`
     .notes-container {
-      padding: 20px;
+      padding: 14px 16px;
     }
 
     .notes-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 8px;
+      margin-bottom: 4px;
     }
 
     .notes-header h3 {
-      font-size: 1.25rem;
+      font-size: 1.05rem;
       color: var(--text-main);
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
 
     .text-amber {
@@ -110,14 +109,14 @@ export type DigitState = 'NEUTRAL' | 'RED' | 'GREEN';
     }
 
     .btn-sm {
-      padding: 6px 12px;
-      font-size: 0.85rem;
+      padding: 4px 10px;
+      font-size: 0.75rem;
     }
 
     .notes-hint {
-      font-size: 0.85rem;
+      font-size: 0.78rem;
       color: var(--text-muted);
-      margin-bottom: 16px;
+      margin-bottom: 10px;
     }
 
     .legend-red {
@@ -130,54 +129,52 @@ export type DigitState = 'NEUTRAL' | 'RED' | 'GREEN';
       font-weight: 600;
     }
 
+    /* 4 POSITIONS SIDE-BY-SIDE ON 1 SINGLE ROW */
     .positions-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 16px;
-      margin-bottom: 20px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    @media (max-width: 768px) {
+      .positions-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
     }
 
     .position-card {
       background: var(--bg-card-secondary);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-md);
-      padding: 14px;
+      padding: 8px;
     }
 
     .position-title {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-weight: 700;
+      font-size: 0.8rem;
+      font-weight: 800;
       color: var(--text-main);
-      margin-bottom: 10px;
-    }
-
-    .pos-badge {
-      font-size: 0.75rem;
-      background: #fef3c7;
-      color: #b45309;
-      padding: 2px 8px;
-      border-radius: 12px;
-      font-weight: 700;
+      margin-bottom: 6px;
+      text-align: center;
     }
 
     .digit-picker {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
-      gap: 6px;
-      margin-bottom: 12px;
+      gap: 3px;
+      margin-bottom: 6px;
     }
 
     .digit-btn {
       background: #f1ece6;
       border: 1px solid #e2d9cd;
       color: #574c43;
-      border-radius: 6px;
+      border-radius: 4px;
       font-weight: 700;
-      padding: 6px 0;
+      font-size: 0.8rem;
+      padding: 3px 0;
       cursor: pointer;
-      transition: all 0.15s ease;
+      transition: all 0.12s ease;
     }
 
     .digit-btn:hover {
@@ -189,45 +186,43 @@ export type DigitState = 'NEUTRAL' | 'RED' | 'GREEN';
       background: var(--color-red-bg);
       border-color: var(--color-red);
       color: var(--color-red);
-      box-shadow: 0 2px 6px rgba(220, 38, 38, 0.15);
     }
 
     .digit-btn.state-green {
       background: var(--color-green-bg);
       border-color: var(--color-green);
       color: var(--color-green);
-      box-shadow: 0 2px 6px rgba(22, 163, 74, 0.15);
     }
 
     .columns-split {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px;
+      gap: 4px;
     }
 
     .column {
       background: #ffffff;
       border: 1px solid var(--border-subtle);
-      border-radius: 6px;
-      padding: 8px;
-      min-height: 50px;
+      border-radius: 4px;
+      padding: 4px;
+      min-height: 34px;
     }
 
     .col-red {
-      border-top: 3px solid var(--color-red);
+      border-top: 2px solid var(--color-red);
     }
 
     .col-green {
-      border-top: 3px solid var(--color-green);
+      border-top: 2px solid var(--color-green);
     }
 
     .col-header {
-      font-size: 0.75rem;
+      font-size: 0.65rem;
       font-weight: 700;
-      margin-bottom: 6px;
+      margin-bottom: 3px;
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 2px;
     }
 
     .col-red .col-header { color: var(--color-red); }
@@ -236,14 +231,14 @@ export type DigitState = 'NEUTRAL' | 'RED' | 'GREEN';
     .digits-list {
       display: flex;
       flex-wrap: wrap;
-      gap: 4px;
+      gap: 2px;
     }
 
     .tag {
-      font-size: 0.8rem;
+      font-size: 0.7rem;
       font-weight: 700;
-      padding: 2px 6px;
-      border-radius: 4px;
+      padding: 1px 4px;
+      border-radius: 3px;
     }
 
     .tag-red {
@@ -258,24 +253,26 @@ export type DigitState = 'NEUTRAL' | 'RED' | 'GREEN';
 
     .empty-text {
       color: var(--text-light);
-      font-size: 0.8rem;
+      font-size: 0.7rem;
     }
 
     .scratchpad-section {
-      margin-top: 16px;
+      margin-top: 8px;
     }
 
     .scratchpad-section label {
       display: block;
-      font-size: 0.9rem;
+      font-size: 0.8rem;
       font-weight: 600;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
       color: var(--text-main);
     }
 
     .scratchpad-textarea {
       resize: vertical;
       font-family: inherit;
+      font-size: 0.85rem;
+      padding: 6px 10px;
     }
   `]
 })
