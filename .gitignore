@@ -1,0 +1,44 @@
+# Node.js & Angular
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+node_modules/
+dist/
+.angular/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python & Pytest
+__pycache__/
+backend/__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+.pytest_cache/
+*.sqlite3
+
+# IDEs & Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# OS Generated Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Local Environment & Temp
+.env
+.env.local
+*.log
