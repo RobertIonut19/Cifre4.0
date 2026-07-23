@@ -1,4 +1,4 @@
-import { Component, DoCheck } from '@angular/core';
+import { Component, DoCheck, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { GameSocketService } from '../../services/game-socket.service';
@@ -14,6 +14,13 @@ export interface RoundGroup {
   isComplete: boolean;
 }
 
+export interface ScoreboardData {
+  alinaWins: number;
+  robabeWins: number;
+  ties: number;
+  otherWins: { [name: string]: number };
+}
+
 @Component({
   selector: 'app-game-board',
   standalone: true,
@@ -21,7 +28,7 @@ export interface RoundGroup {
   template: `
     <div *ngIf="gameSocket.gameState() as state" class="board-wrapper animate-fade-in">
       
-      <!-- FLOATING CORNER DOG ANNOUNCEMENT TOAST (BOTTOM RIGHT CORNER) -->
+      <!-- FLOATING CORNER DOG ANNOUNCEMENT TOAST (FIXED TO BROWSER VIEWPORT CORNER) -->
       <div *ngIf="showMyTurnBanner" class="dog-corner-toast animate-bounce-in" (click)="dismissTurnBanner()">
         <div class="speech-bubble-corner">
           <div class="bubble-title"><i class="fa-solid fa-bullseye text-amber"></i> E rândul tău! 🎯</div>
@@ -36,6 +43,14 @@ export interface RoundGroup {
       <header class="glass-panel top-bar">
         <div class="brand">
           <i class="fa-solid fa-calculator text-amber"></i> CIFRE 4.0
+        </div>
+
+        <!-- SCOREBOARD PERSISTENT BADGE IN HEADER -->
+        <div class="header-scoreboard" title="Scor General Memorat">
+          <span class="sc-item alina-sc">Alina ❤️ <strong>{{ scoreboard.alinaWins }}</strong></span>
+          <span class="sc-divider">-</span>
+          <span class="sc-item robabe-sc"><strong>{{ scoreboard.robabeWins }}</strong> Robabe 🤍</span>
+          <span *ngIf="scoreboard.ties > 0" class="sc-ties">(🤝 {{ scoreboard.ties }})</span>
         </div>
 
         <!-- MY SECRET NUMBER (VISIBLE BY DEFAULT) -->
@@ -124,7 +139,7 @@ export interface RoundGroup {
           <!-- STATE 3 & 4: PLAYING & FINISHED -->
           <div *ngIf="state.state === 'PLAYING' || state.state === 'FINISHED'" class="main-play-container">
             
-            <!-- SIDE-BY-SIDE CORE CONSOLE: GUESS INPUT (LEFT) + 2-COLUMN GUESSES TABLE (RIGHT) -->
+            <!-- SIDE-BY-SIDE CORE CONSOLE: GUESS INPUT (LEFT) + DUAL COLUMN TABLE (RIGHT - MOBILE OPTIMIZED) -->
             <div class="play-split-row">
               
               <!-- LEFT SUB-CARD: COMPACT GUESS INPUT CONSOLE -->
@@ -156,7 +171,7 @@ export interface RoundGroup {
                 </div>
               </div>
 
-              <!-- RIGHT SUB-CARD: DUAL COLUMN TABLE (YOU ON LEFT | OPPONENT DIMMED ON RIGHT) -->
+              <!-- RIGHT SUB-CARD: DUAL COLUMN GUESSES TABLE (RESPONSIVE & MOBILE-OPTIMIZED) -->
               <div class="glass-panel dual-guesses-card">
                 <div class="dual-guesses-header">
                   <div class="col-head my-head text-amber"><i class="fa-solid fa-user-check"></i> Tu</div>
@@ -174,7 +189,7 @@ export interface RoundGroup {
                     <div class="dual-col col-mine">
                       <span class="rg-num">{{ rg.roundNumber }}.</span>
                       <ng-container *ngIf="getMyGuessForRound(rg) as mg; else noMyGuess">
-                        <span class="mg-num">{{ mg.guess }}</span>
+                        <strong class="mg-num">{{ mg.guess }}</strong>
                         <span class="mg-score-digit" [class]="'score-color-' + mg.exact_matches">{{ mg.exact_matches }}</span>
                       </ng-container>
                       <ng-template #noMyGuess>
@@ -186,7 +201,7 @@ export interface RoundGroup {
                     <div class="dual-col col-opponent">
                       <span class="rg-num">{{ rg.roundNumber }}.</span>
                       <ng-container *ngIf="getOpponentGuessForRound(rg) as og; else noOpponentGuess">
-                        <span class="mg-num opp-num">{{ og.guess }}</span>
+                        <strong class="mg-num opp-num">{{ og.guess }}</strong>
                         <span class="mg-score-digit opp-score" [class]="'score-color-' + og.exact_matches">{{ og.exact_matches }}</span>
                       </ng-container>
                       <ng-template #noOpponentGuess>
@@ -239,8 +254,39 @@ export interface RoundGroup {
           <app-notes-panel></app-notes-panel>
         </div>
 
-        <!-- Right Section: Chat & Players list -->
+        <!-- Right Section: Scoreboard, Chat & Players list -->
         <div class="right-section">
+          
+          <!-- SCOREBOARD DETAILED CARD PERSISTED IN LOCALSTORAGE -->
+          <div class="glass-panel scoreboard-card">
+            <div class="sc-card-header">
+              <h4><i class="fa-solid fa-trophy text-amber"></i> Evidență Meciuri (Scor)</h4>
+              <button class="btn-reset-sc" (click)="resetScoreboard()" title="Resetează Scor">
+                <i class="fa-solid fa-rotate-left"></i>
+              </button>
+            </div>
+
+            <div class="scoreboard-stats">
+              <div class="sc-player-row alina-row">
+                <span class="sc-name">Alina ❤️</span>
+                <strong class="sc-val">{{ scoreboard.alinaWins }} victorii</strong>
+              </div>
+              <div class="sc-player-row robabe-row">
+                <span class="sc-name">Robabe 🤍</span>
+                <strong class="sc-val">{{ scoreboard.robabeWins }} victorii</strong>
+              </div>
+              <div class="sc-player-row tie-row">
+                <span class="sc-name">Egalități 🤝</span>
+                <strong class="sc-val">{{ scoreboard.ties }} remize</strong>
+              </div>
+
+              <div *ngFor="let name of getOtherWinnerNames()" class="sc-player-row other-row">
+                <span class="sc-name">{{ name }}</span>
+                <strong class="sc-val">{{ scoreboard.otherWins[name] }} victorii</strong>
+              </div>
+            </div>
+          </div>
+
           <!-- Players Box ("Jucători") -->
           <div class="glass-panel players-card">
             <h4><i class="fa-solid fa-users text-amber"></i> Jucători</h4>
@@ -266,7 +312,7 @@ export interface RoundGroup {
 
           <!-- PAST GAMES CUMULATIVE HISTORY -->
           <div *ngIf="state.past_games_history && state.past_games_history.length > 0" class="glass-panel past-games-card animate-fade-in">
-            <h4><i class="fa-solid fa-trophy text-amber"></i> Meciuri Anterioare</h4>
+            <h4><i class="fa-solid fa-clock-rotate-left text-amber"></i> Istoric Meciuri Cameră</h4>
             
             <div class="past-games-list">
               <div *ngFor="let g of state.past_games_history" class="past-game-item">
@@ -378,6 +424,24 @@ export interface RoundGroup {
       color: var(--text-main);
     }
 
+    /* HEADER SCOREBOARD BADGE */
+    .header-scoreboard {
+      background: #fff8ef;
+      border: 1px solid var(--accent-amber);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .alina-sc { color: #be185d; }
+    .robabe-sc { color: #475569; }
+    .sc-divider { color: var(--text-muted); }
+    .sc-ties { color: #854d0e; font-size: 0.8rem; }
+
     .top-secret-bar {
       display: flex;
       align-items: center;
@@ -464,16 +528,6 @@ export interface RoundGroup {
       display: grid;
       grid-template-columns: 1fr 340px;
       gap: 16px;
-    }
-
-    @media (max-width: 900px) {
-      .game-grid {
-        grid-template-columns: 1fr;
-      }
-      .top-bar {
-        flex-direction: column;
-        gap: 10px;
-      }
     }
 
     .left-section {
@@ -600,17 +654,11 @@ export interface RoundGroup {
       gap: 16px;
     }
 
-    /* PLAY SPLIT ROW: CONSOLE (LEFT) + DUAL COLUMN TABLE (RIGHT) SIDE BY SIDE */
+    /* PLAY SPLIT ROW: CONSOLE (LEFT) + DUAL COLUMN TABLE (RIGHT) */
     .play-split-row {
       display: grid;
       grid-template-columns: 280px 1fr;
       gap: 16px;
-    }
-
-    @media (max-width: 768px) {
-      .play-split-row {
-        grid-template-columns: 1fr;
-      }
     }
 
     /* ULTRA MINIMAL GUESS CONSOLE CARD */
@@ -668,7 +716,7 @@ export interface RoundGroup {
       pointer-events: none;
     }
 
-    /* DUAL GUESSES CARD (YOU VIBRANT ON LEFT | OPPONENT DIMMED ON RIGHT) */
+    /* DUAL GUESSES CARD WITH COMPACT ALIGNED NUMBERS */
     .dual-guesses-card {
       padding: 14px 16px;
       display: flex;
@@ -678,14 +726,14 @@ export interface RoundGroup {
     .dual-guesses-header {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 8px;
-      padding-bottom: 6px;
+      gap: 8px;
+      margin-bottom: 6px;
+      padding-bottom: 4px;
       border-bottom: 1px solid var(--border-subtle);
     }
 
     .col-head {
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       font-weight: 800;
     }
 
@@ -701,8 +749,8 @@ export interface RoundGroup {
     .dual-guesses-body {
       display: flex;
       flex-direction: column;
-      gap: 4px;
-      max-height: 260px;
+      gap: 2px;
+      max-height: 380px;
       overflow-y: auto;
       padding-right: 4px;
     }
@@ -710,8 +758,8 @@ export interface RoundGroup {
     .dual-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      padding: 4px 0;
+      gap: 8px;
+      padding: 2px 0;
       border-bottom: 1px solid var(--border-subtle);
     }
 
@@ -719,7 +767,7 @@ export interface RoundGroup {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 2px 6px;
+      padding: 1px 4px;
       border-radius: 4px;
     }
 
@@ -733,15 +781,15 @@ export interface RoundGroup {
     }
 
     .rg-num {
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       font-weight: 700;
       color: var(--text-muted);
-      width: 22px;
+      width: 20px;
     }
 
     .mg-num {
       font-family: 'Outfit', monospace;
-      font-size: 1.15rem;
+      font-size: 0.95rem;
       font-weight: 800;
       letter-spacing: 2px;
       color: var(--text-main);
@@ -754,7 +802,7 @@ export interface RoundGroup {
 
     .pending-text {
       color: var(--text-light);
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       font-style: italic;
     }
 
@@ -762,9 +810,9 @@ export interface RoundGroup {
     .mg-score-digit {
       font-family: 'Outfit', sans-serif;
       font-weight: 800;
-      font-size: 0.9rem;
-      width: 26px;
-      height: 26px;
+      font-size: 0.8rem;
+      width: 22px;
+      height: 22px;
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -839,6 +887,63 @@ export interface RoundGroup {
       justify-content: center;
       gap: 20px;
       font-size: 1rem;
+    }
+
+    /* SCOREBOARD CARD */
+    .scoreboard-card {
+      padding: 14px 16px;
+    }
+
+    .sc-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .sc-card-header h4 {
+      font-size: 0.98rem;
+      color: var(--text-main);
+    }
+
+    .btn-reset-sc {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+
+    .scoreboard-stats {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .sc-player-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.88rem;
+      padding: 4px 8px;
+      background: #fbf9f5;
+      border-radius: 6px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .sc-name {
+      font-weight: 700;
+    }
+
+    .alina-row .sc-name { color: #be185d; }
+    .robabe-row .sc-name { color: #334155; }
+    .tie-row .sc-name { color: #854d0e; }
+
+    .sc-val {
+      font-size: 0.85rem;
+      color: var(--text-main);
     }
 
     .players-card {
@@ -954,20 +1059,124 @@ export interface RoundGroup {
       font-size: 0.75rem;
       color: var(--text-muted);
     }
+
+    /* MOBILE PHONES OPTIMIZATION (< 768px & < 600px) */
+    @media (max-width: 900px) {
+      .game-grid {
+        grid-template-columns: 1fr;
+      }
+      .top-bar {
+        flex-direction: column;
+        gap: 10px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .play-split-row {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .board-wrapper {
+        padding: 6px;
+      }
+      .top-bar {
+        padding: 10px;
+        gap: 8px;
+      }
+      .header-scoreboard {
+        font-size: 0.78rem;
+        padding: 3px 10px;
+      }
+      .top-secret-bar {
+        padding: 4px 10px;
+        font-size: 0.82rem;
+      }
+      .secret-digits, .secret-masked {
+        font-size: 1.05rem;
+        letter-spacing: 2px;
+      }
+
+      /* MOBILE GUESSES TABLE PERFECT RESPONSIVE FIT */
+      .dual-guesses-card {
+        padding: 10px;
+      }
+      .dual-guesses-header {
+        gap: 6px;
+        margin-bottom: 4px;
+        padding-bottom: 4px;
+      }
+      .col-head {
+        font-size: 0.82rem;
+      }
+      .dual-guesses-body {
+        max-height: 330px;
+        gap: 2px;
+      }
+      .dual-row {
+        gap: 6px;
+        padding: 2px 0;
+      }
+      .dual-col {
+        padding: 1px 3px;
+      }
+      .rg-num {
+        font-size: 0.7rem;
+        width: 16px;
+      }
+      .mg-num {
+        font-size: 0.88rem;
+        letter-spacing: 1px;
+      }
+      .mg-score-digit {
+        width: 20px;
+        height: 20px;
+        font-size: 0.75rem;
+      }
+
+      /* MOBILE CORNER TOAST */
+      .speech-bubble-corner {
+        max-width: 250px;
+        padding: 10px 14px;
+      }
+      .bubble-title {
+        font-size: 1.1rem;
+      }
+      .bubble-text {
+        font-size: 0.9rem;
+      }
+      .dog-emoji {
+        font-size: 4.2rem;
+      }
+    }
   `]
 })
-export class GameBoardComponent implements DoCheck {
+export class GameBoardComponent implements OnInit, DoCheck {
   mySecretInput: string = '';
   showSecret: boolean = false;
-  showMySecretInGame: boolean = true; // VISIBLE BY DEFAULT
+  showMySecretInGame: boolean = true;
   guessInput: string = '';
   copiedCode: boolean = false;
 
   showMyTurnBanner: boolean = false;
   private previousIsMyTurn: boolean = false;
   private bannerTimer: any = null;
+  private processedGameIds: Set<number> = new Set();
+
+  public scoreboard: ScoreboardData = {
+    alinaWins: 0,
+    robabeWins: 0,
+    ties: 0,
+    otherWins: {}
+  };
 
   constructor(public gameSocket: GameSocketService) {}
+
+  ngOnInit() {
+    this.loadScoreboard();
+  }
 
   ngDoCheck() {
     const currentIsMyTurn = this.isMyTurn();
@@ -975,6 +1184,59 @@ export class GameBoardComponent implements DoCheck {
       this.triggerTurnBanner();
     }
     this.previousIsMyTurn = currentIsMyTurn;
+
+    this.checkAndRecordScoreboard();
+  }
+
+  loadScoreboard() {
+    const saved = localStorage.getItem('cifre_scoreboard_v1');
+    if (saved) {
+      try {
+        this.scoreboard = JSON.parse(saved);
+      } catch (e) {}
+    }
+  }
+
+  saveScoreboard() {
+    localStorage.setItem('cifre_scoreboard_v1', JSON.stringify(this.scoreboard));
+  }
+
+  resetScoreboard() {
+    this.scoreboard = {
+      alinaWins: 0,
+      robabeWins: 0,
+      ties: 0,
+      otherWins: {}
+    };
+    this.saveScoreboard();
+  }
+
+  checkAndRecordScoreboard() {
+    const state = this.gameSocket.gameState();
+    if (!state || state.state !== 'FINISHED' || !state.winner) return;
+
+    const gameCount = (state.past_games_history?.length || 0) + 1;
+    if (this.processedGameIds.has(gameCount)) return;
+
+    this.processedGameIds.add(gameCount);
+
+    if (state.winner === 'TIE') {
+      this.scoreboard.ties++;
+    } else {
+      const winnerName = state.winner_name || '';
+      if (winnerName.includes('Alina')) {
+        this.scoreboard.alinaWins++;
+      } else if (winnerName.includes('Robabe')) {
+        this.scoreboard.robabeWins++;
+      } else {
+        this.scoreboard.otherWins[winnerName] = (this.scoreboard.otherWins[winnerName] || 0) + 1;
+      }
+    }
+    this.saveScoreboard();
+  }
+
+  getOtherWinnerNames(): string[] {
+    return Object.keys(this.scoreboard.otherWins || {});
   }
 
   triggerTurnBanner() {

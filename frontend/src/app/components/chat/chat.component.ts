@@ -75,8 +75,8 @@ import { GameSocketService } from '../../services/game-socket.service';
       display: flex;
       flex-direction: column;
       gap: 10px;
-      padding-right: 6px;
-      margin-bottom: 12px;
+      padding: 4px 6px 14px 4px;
+      margin-bottom: 8px;
     }
 
     .no-messages {

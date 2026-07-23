@@ -171,6 +171,10 @@ class Room:
             else:
                 pinfo["secret"] = None
 
+        # Alternate who goes first in the next game
+        if len(self.player_order) == 2:
+            self.player_order = [self.player_order[1], self.player_order[0]]
+
         self.state = "WAITING_FOR_SECRETS"
 
     def get_public_state(self, requester_id: str) -> dict:
