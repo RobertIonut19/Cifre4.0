@@ -1228,6 +1228,12 @@ export class GameBoardComponent implements OnInit, DoCheck {
     }
   }
 
+  submitSecret() {
+    if (this.isValidSecret(this.mySecretInput)) {
+      this.gameSocket.setSecret(this.mySecretInput.toUpperCase());
+    }
+  }
+
   submitGuess() {
     if (this.isMyTurn() && this.isValidSecret(this.guessInput)) {
       this.gameSocket.makeGuess(this.guessInput.toUpperCase());
