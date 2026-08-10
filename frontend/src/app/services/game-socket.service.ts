@@ -105,6 +105,13 @@ export class GameSocketService {
     return await firstValueFrom(this.http.get<{ [winner_name: string]: number }>(url));
   }
 
+  async validateWordDex(word: string): Promise<{ valid: boolean; message: string }> {
+    const isHttps = window.location.protocol === 'https:';
+    const httpProtocol = isHttps ? 'https:' : 'http:';
+    const url = `${httpProtocol}//${this.backendHost}/api/words/validate/${encodeURIComponent(word)}`;
+    return await firstValueFrom(this.http.get<{ valid: boolean; message: string }>(url));
+  }
+
   connectSocket(roomId: string, playerName: string) {
     this.disconnect();
     this.errorMessage.set(null);

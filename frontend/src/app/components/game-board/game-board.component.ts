@@ -251,8 +251,8 @@ export interface ScoreboardData {
 
           </div>
 
-          <!-- Notes Panel Component (Shown for Numbers Game) -->
-          <app-notes-panel *ngIf="state.game_type !== 'words'"></app-notes-panel>
+          <!-- Notes Panel Component (Shown for both Numbers & Words Games) -->
+          <app-notes-panel [gameType]="state.game_type || 'numbers'"></app-notes-panel>
         </div>
 
         <!-- Right Section: Scoreboard, Chat & Players list -->

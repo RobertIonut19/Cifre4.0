@@ -59,6 +59,12 @@ def save_player_endpoint(req: SavePlayerRequest):
 def get_stats_endpoint(game_type: str = None):
     return get_scores_stats(game_type=game_type)
 
+@app.get("/api/words/validate/{word}")
+def validate_word_dex(word: str):
+    from word_game_logic import validate_word_dexonline
+    is_valid, message = validate_word_dexonline(word)
+    return {"valid": is_valid, "word": word.upper(), "message": message}
+
 @app.get("/api/rooms/{room_id}")
 def get_room_info(room_id: str):
     room = room_manager.get_room(room_id)
@@ -68,80 +74,58 @@ def get_room_info(room_id: str):
 
 
 async def broadcast_room_state(room: Room):
-    """Sends updated state to all connected websockets in the room."""
-    for pid, pdata in list(room.players.items()):
-        ws: WebSocket = pdata.get("websocket")
+    state = room.get_public_state("")
+    for pid, pinfo in list(room.players.items()):
+        ws: WebSocket = pinfo["websocket"]
         if ws:
+            p_state = room.get_public_state(pid)
             try:
-                state_msg = {
-                    "type": "GAME_STATE",
-                    "data": room.get_public_state(pid)
-                }
-                await ws.send_text(json.dumps(state_msg))
+                await ws.send_text(json.dumps({"type": "GAME_STATE", "data": p_state}))
             except Exception:
                 pass
 
 async def broadcast_chat_message(room: Room, chat_entry: dict):
-    """Sends a chat message to all players in the room."""
-    room.chat_history.append(chat_entry)
-    for pid, pdata in list(room.players.items()):
-        ws: WebSocket = pdata.get("websocket")
+    for pid, pinfo in list(room.players.items()):
+        ws: WebSocket = pinfo["websocket"]
         if ws:
             try:
-                msg = {
-                    "type": "CHAT_MESSAGE",
-                    "data": chat_entry
-                }
-                await ws.send_text(json.dumps(msg))
+                await ws.send_text(json.dumps({"type": "CHAT_MESSAGE", "data": chat_entry}))
             except Exception:
                 pass
 
 async def handle_bot_turn_if_needed(room: Room):
-    """If current turn is BOT_AGENT, simulate thinking and make a guess."""
-    if room.state == "PLAYING" and room.current_turn == "BOT_AGENT":
-        # Simulate slight delay so bot feels natural
+    if room.is_bot_game and room.state == "PLAYING" and room.current_turn == "BOT_AGENT":
+        import asyncio
         await asyncio.sleep(1.2)
-        
         bot_guess = room.bot_agent.make_guess()
-        guess_result = room.process_guess("BOT_AGENT", bot_guess)
-        
-        if guess_result:
-            # Inform bot of its feedback to refine future candidates
-            room.bot_agent.process_feedback(bot_guess, guess_result["exact_matches"])
-        
-        await broadcast_room_state(room)
+        guess_res = room.process_guess("BOT_AGENT", bot_guess)
+        if guess_res:
+            room.bot_agent.process_feedback(bot_guess, guess_res["exact_matches"])
+            await broadcast_room_state(room)
 
 
 @app.websocket("/ws/{room_id}/{player_name}")
 async def websocket_endpoint(websocket: WebSocket, room_id: str, player_name: str):
     await websocket.accept()
-    
+
     room = room_manager.get_room(room_id)
     if not room:
         await websocket.send_text(json.dumps({"type": "ERROR", "message": "Camera nu există!"}))
         await websocket.close()
         return
 
-    player_id = f"P_{uuid.uuid4().hex[:6]}"
-    success = room.add_player(player_id, player_name, websocket)
-    if not success:
+    player_id = secrets.token_hex(4)
+    if not room.add_player(player_id, player_name, websocket):
         await websocket.send_text(json.dumps({"type": "ERROR", "message": "Camera este plină!"}))
         await websocket.close()
         return
 
-    # Send initial registration info to connected client
     await websocket.send_text(json.dumps({
         "type": "CONNECTED",
-        "data": {
-            "player_id": player_id,
-            "room_id": room.room_id
-        }
+        "data": {"player_id": player_id, "room_id": room_id}
     }))
 
-    # Broadcast updated room state
     await broadcast_room_state(room)
-
-    # If bot game, bot is auto-ready with secret, check state
     await handle_bot_turn_if_needed(room)
 
     try:
@@ -157,6 +141,16 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, player_name: st
 
             if msg_type == "SET_SECRET":
                 secret = payload.get("secret", "")
+                if room.game_type == "words":
+                    from word_game_logic import validate_word_dexonline
+                    is_valid, msg_text = validate_word_dexonline(secret)
+                    if not is_valid:
+                        await websocket.send_text(json.dumps({
+                            "type": "ERROR", 
+                            "message": msg_text
+                        }))
+                        continue
+
                 if room.set_secret(player_id, secret):
                     await broadcast_room_state(room)
                     await handle_bot_turn_if_needed(room)
@@ -176,15 +170,24 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, player_name: st
                     }))
                     continue
 
+                if room.game_type == "words":
+                    from word_game_logic import validate_word_dexonline
+                    is_valid, msg_text = validate_word_dexonline(guess_num)
+                    if not is_valid:
+                        await websocket.send_text(json.dumps({
+                            "type": "ERROR", 
+                            "message": msg_text
+                        }))
+                        continue
+
                 guess_result = room.process_guess(player_id, guess_num)
                 if guess_result:
                     await broadcast_room_state(room)
-                    # Trigger Bot response if opponent is Bot
                     await handle_bot_turn_if_needed(room)
                 else:
                     await websocket.send_text(json.dumps({
                         "type": "ERROR",
-                        "message": "Număr invalid sau nu este rândul tău!"
+                        "message": "Cuvânt sau număr nevalid sau nu este rândul tău!"
                     }))
 
             elif msg_type == "RESTART_GAME":
