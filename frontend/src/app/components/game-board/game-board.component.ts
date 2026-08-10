@@ -1,4 +1,4 @@
-import { Component, DoCheck, OnInit } from '@angular/core';
+import { Component, DoCheck, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { GameSocketService } from '../../services/game-socket.service';
@@ -42,7 +42,8 @@ export interface ScoreboardData {
       <!-- Top Navigation & Room Info Header -->
       <header class="glass-panel top-bar">
         <div class="brand">
-          <i class="fa-solid fa-calculator text-amber"></i> CIFRE 4.0
+          <i class="fa-solid" [class.fa-calculator]="state.game_type !== 'words'" [class.fa-font]="state.game_type === 'words'" class="text-amber"></i>
+          {{ state.game_type === 'words' ? 'CUVINTE 5' : 'CIFRE 4' }}
         </div>
 
         <!-- SCOREBOARD PERSISTENT BADGE IN HEADER -->
@@ -53,12 +54,12 @@ export interface ScoreboardData {
           <span *ngIf="scoreboard.ties > 0" class="sc-ties">(🤝 {{ scoreboard.ties }})</span>
         </div>
 
-        <!-- MY SECRET NUMBER (VISIBLE BY DEFAULT) -->
+        <!-- MY SECRET (VISIBLE BY DEFAULT) -->
         <div class="top-secret-bar">
-          <span class="secret-title">Numărul tău secret:</span>
+          <span class="secret-title">{{ state.game_type === 'words' ? 'Cuvântul tău secret:' : 'Numărul tău secret:' }}</span>
           <span class="secret-val-box">
-            <strong *ngIf="showMySecretInGame" class="secret-digits">{{ myPlayerInfo?.secret || '????' }}</strong>
-            <strong *ngIf="!showMySecretInGame" class="secret-masked">••••</strong>
+            <strong *ngIf="showMySecretInGame" class="secret-digits">{{ myPlayerInfo?.secret || (state.game_type === 'words' ? '?????' : '????') }}</strong>
+            <strong *ngIf="!showMySecretInGame" class="secret-masked">{{ state.game_type === 'words' ? '•••••' : '••••' }}</strong>
             <button class="btn-toggle-eye" (click)="showMySecretInGame = !showMySecretInGame" title="Afișează/Ascunde">
               <i class="fa-solid" [class.fa-eye]="!showMySecretInGame" [class.fa-eye-slash]="showMySecretInGame"></i>
             </button>
@@ -93,34 +94,35 @@ export interface ScoreboardData {
           <!-- STATE 2: WAITING FOR SECRETS -->
           <div *ngIf="state.state === 'WAITING_FOR_SECRETS'" class="glass-panel state-card secret-selection-card">
             <div class="secret-card-header">
-              <i class="fa-solid fa-user-lock icon-amber"></i>
-              <h2>Alege Numărul Tău Secret
+              <i class="fa-solid" [class.fa-user-lock]="state.game_type !== 'words'" [class.fa-spell-check]="state.game_type === 'words'" class="icon-amber"></i>
+              <h2>{{ state.game_type === 'words' ? 'Alege Cuvântul Tău Secret' : 'Alege Numărul Tău Secret' }}
                 <span *ngIf="state.past_games_history && state.past_games_history.length > 0" class="game-num-tag">
                   (Meciul #{{ state.past_games_history.length + 1 }})
                 </span>
               </h2>
-              <p class="text-muted">Alege un număr din 4 cifre (0000 - 9999). Pe telefon se deschide tastatura numerică!</p>
+              <p class="text-muted">
+                {{ state.game_type === 'words' ? 'Alege un cuvânt din 5 litere (ex: SOARE, CARTE, CAFEA).' : 'Alege un număr din 4 cifre (0000 - 9999). Pe telefon se deschide tastatura numerică!' }}
+              </p>
             </div>
 
             <div *ngIf="!myPlayerInfo?.has_secret; else waitingOpponentSecret" class="secret-form-box">
-              <label class="form-label">Introdu cele 4 cifre secrete:</label>
+              <label class="form-label">{{ state.game_type === 'words' ? 'Introdu cele 5 litere secrete:' : 'Introdu cele 4 cifre secrete:' }}</label>
               <div class="secret-input-row">
                 <div class="secret-input-wrapper">
                   <input 
-                    [type]="showSecret ? 'tel' : 'password'" 
-                    inputmode="numeric"
-                    pattern="[0-9]*"
+                    [type]="showSecret ? 'text' : 'password'" 
+                    [attr.inputmode]="state.game_type === 'words' ? 'text' : 'numeric'"
                     class="form-input secret-input-field" 
-                    placeholder="0000" 
+                    [placeholder]="state.game_type === 'words' ? 'SOARE' : '0000'" 
                     [(ngModel)]="mySecretInput" 
-                    maxlength="4"
+                    [maxlength]="state.game_type === 'words' ? 5 : 4"
                     (keyup.enter)="submitSecret()">
                   <button type="button" class="eye-toggle-btn" (click)="showSecret = !showSecret">
                     <i class="fa-solid" [class.fa-eye]="!showSecret" [class.fa-eye-slash]="showSecret"></i>
                   </button>
                 </div>
                 <button class="btn btn-primary btn-save-secret" (click)="submitSecret()" [disabled]="!isValidSecret(mySecretInput)">
-                  <i class="fa-solid fa-check"></i> Salvează Numărul Secret
+                  <i class="fa-solid fa-check"></i> {{ state.game_type === 'words' ? 'Salvează Cuvântul Secret' : 'Salvează Numărul Secret' }}
                 </button>
               </div>
             </div>
@@ -129,8 +131,8 @@ export interface ScoreboardData {
               <div class="secret-ready-box animate-fade-in">
                 <i class="fa-solid fa-circle-check text-green icon-ready"></i>
                 <div class="ready-text">
-                  <h3>Numărul tău secret a fost salvat!</h3>
-                  <p class="text-muted">În așteptare ca și celălalt jucător să își aleagă numărul...</p>
+                  <h3>{{ state.game_type === 'words' ? 'Cuvântul tău secret a fost salvat!' : 'Numărul tău secret a fost salvat!' }}</h3>
+                  <p class="text-muted">În așteptare ca și celălalt jucător să își aleagă secretul...</p>
                 </div>
               </div>
             </ng-template>
@@ -154,14 +156,13 @@ export interface ScoreboardData {
                 <div class="guess-input-box" [class.opacity-disabled]="!isMyTurn()">
                   <div class="guess-input-wrapper">
                     <input 
-                      type="tel"
-                      inputmode="numeric"
-                      pattern="[0-9]*"
+                      type="text"
+                      [attr.inputmode]="state.game_type === 'words' ? 'text' : 'numeric'"
                       id="guessNumInput"
                       class="form-input guess-input" 
-                      placeholder="0000" 
+                      [placeholder]="state.game_type === 'words' ? 'SOARE' : '0000'" 
                       [(ngModel)]="guessInput" 
-                      maxlength="4"
+                      [maxlength]="state.game_type === 'words' ? 5 : 4"
                       [disabled]="!isMyTurn()"
                       (keyup.enter)="submitGuess()">
                     <button class="btn btn-primary btn-guess" (click)="submitGuess()" [disabled]="!isMyTurn() || !isValidSecret(guessInput)">
@@ -221,7 +222,7 @@ export interface ScoreboardData {
                 <i class="fa-solid fa-handshake winner-trophy text-amber"></i>
                 <h2>EGALITATE PERFECTĂ! 🤝</h2>
                 <p class="winner-subtitle">
-                  Ambii jucători au ghicit numărul secret în aceeași rundă!
+                  Ambii jucători au ghicit secretul în aceeași rundă!
                 </p>
               </div>
 
@@ -229,7 +230,7 @@ export interface ScoreboardData {
                 <i class="fa-solid fa-trophy winner-trophy"></i>
                 <h2>{{ state.winner_name }} a câștigat! 🎉</h2>
                 <p class="winner-subtitle">
-                  Numărul secret ghicit a fost descoperit cu succes!
+                  {{ state.game_type === 'words' ? 'Cuvântul secret a fost ghicit!' : 'Numărul secret a fost ghicit!' }}
                 </p>
               </ng-template>
 
@@ -250,8 +251,8 @@ export interface ScoreboardData {
 
           </div>
 
-          <!-- Notes Panel Component (4 Columns in 1 Row) -->
-          <app-notes-panel></app-notes-panel>
+          <!-- Notes Panel Component (Shown for Numbers Game) -->
+          <app-notes-panel *ngIf="state.game_type !== 'words'"></app-notes-panel>
         </div>
 
         <!-- Right Section: Scoreboard, Chat & Players list -->
@@ -300,8 +301,8 @@ export interface ScoreboardData {
                   <span *ngIf="pid === gameSocket.playerId()" class="you-badge">(Tu)</span>
                 </div>
                 <div class="p-status">
-                  <span *ngIf="state.players[pid].has_secret" class="status-dot green" title="Număr secret gata"></span>
-                  <span *ngIf="!state.players[pid].has_secret" class="status-dot orange" title="Se gândește la număr"></span>
+                  <span *ngIf="state.players[pid].has_secret" class="status-dot green" title="Secret ales"></span>
+                  <span *ngIf="!state.players[pid].has_secret" class="status-dot orange" title="Se gândește..."></span>
                 </div>
               </div>
             </div>
@@ -607,6 +608,7 @@ export interface ScoreboardData {
       padding: 10px 40px 10px 16px;
       background: #ffffff;
       color: var(--accent-amber);
+      text-transform: uppercase;
     }
 
     .eye-toggle-btn {
@@ -703,6 +705,7 @@ export interface ScoreboardData {
       text-align: center;
       background: #ffffff;
       padding: 8px;
+      text-transform: uppercase;
     }
 
     .btn-guess {
@@ -772,11 +775,11 @@ export interface ScoreboardData {
     }
 
     .col-mine {
-      opacity: 1; /* VIBRANT FOR PLAYER */
+      opacity: 1;
     }
 
     .col-opponent {
-      opacity: 0.65; /* DIMMED FOR OPPONENT */
+      opacity: 0.65;
       background: rgba(0, 0, 0, 0.02);
     }
 
@@ -801,110 +804,99 @@ export interface ScoreboardData {
     }
 
     .pending-text {
-      color: var(--text-light);
-      font-size: 0.75rem;
-      font-style: italic;
+      color: var(--text-muted);
+      font-size: 0.85rem;
     }
 
-    /* 5 DYNAMIC SCORE COLORS (0=RED, 1=ORANGE, 2=YELLOW, 3=LIGHT GREEN, 4=DARK GREEN) */
     .mg-score-digit {
-      font-family: 'Outfit', sans-serif;
-      font-weight: 800;
-      font-size: 0.8rem;
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: #ffffff;
     }
 
-    .score-color-0 {
-      background: #fee2e2;
-      color: #dc2626;
-      border: 1px solid #fca5a5;
+    .score-color-0 { background: #94a3b8; }
+    .score-color-1 { background: #f59e0b; }
+    .score-color-2 { background: #3b82f6; }
+    .score-color-3 { background: #8b5cf6; }
+    .score-color-4 { background: #10b981; }
+    .score-color-5 { background: #059669; }
+
+    .opp-score {
+      opacity: 0.85;
     }
 
-    .score-color-1 {
-      background: #ffedd5;
-      color: #ea580c;
-      border: 1px solid #fed7aa;
-    }
-
-    .score-color-2 {
-      background: #fef9c3;
-      color: #ca8a04;
-      border: 1px solid #fef08a;
-    }
-
-    .score-color-3 {
-      background: #ecfccb;
-      color: #65a30d;
-      border: 1px solid #bef264;
-    }
-
-    .score-color-4 {
-      background: #dcfce7;
-      color: #15803d;
-      border: 1px solid #86efac;
-    }
-
+    /* WINNER CARD */
     .winner-card {
+      background: var(--bg-card);
+      border: 2px solid var(--color-green);
+      border-radius: var(--radius-lg);
+      padding: 30px;
       text-align: center;
-      padding: 30px 20px;
-      background: #fef3c7;
-      border: 2px solid #f59e0b;
-      border-radius: var(--radius-md);
+      box-shadow: 0 10px 30px rgba(16, 185, 129, 0.15);
     }
 
     .winner-card.tie-card {
-      background: #fefce8;
-      border-color: #eab308;
+      border-color: var(--accent-amber);
+      box-shadow: 0 10px 30px rgba(217, 119, 6, 0.15);
     }
 
     .winner-trophy {
-      font-size: 3rem;
-      color: #d97706;
-      margin-bottom: 10px;
+      font-size: 3.5rem;
+      color: var(--color-green);
+      margin-bottom: 12px;
     }
 
     .winner-subtitle {
-      color: #78350f;
-      margin-bottom: 16px;
-    }
-
-    .play-again-action {
-      margin-top: 20px;
-    }
-
-    .btn-play-again {
-      padding: 14px 28px;
-      font-size: 1.1rem;
+      color: var(--text-muted);
+      margin-bottom: 20px;
     }
 
     .secrets-summary {
       display: flex;
       justify-content: center;
       gap: 20px;
-      font-size: 1rem;
+      background: #fbf9f5;
+      padding: 12px 20px;
+      border-radius: var(--radius-md);
+      margin-bottom: 20px;
+    }
+
+    .secret-item {
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .play-again-action {
+      display: flex;
+      justify-content: center;
+    }
+
+    .btn-play-again {
+      padding: 12px 28px;
+      font-size: 1.05rem;
     }
 
     /* SCOREBOARD CARD */
     .scoreboard-card {
-      padding: 14px 16px;
+      padding: 16px;
     }
 
     .sc-card-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 10px;
-      padding-bottom: 4px;
-      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 12px;
     }
 
     .sc-card-header h4 {
-      font-size: 0.98rem;
+      font-size: 0.95rem;
+      font-weight: 800;
       color: var(--text-main);
     }
 
@@ -926,34 +918,30 @@ export interface ScoreboardData {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 0.88rem;
-      padding: 4px 8px;
-      background: #fbf9f5;
+      padding: 6px 10px;
       border-radius: 6px;
+      background: #fdfbf7;
       border: 1px solid var(--border-subtle);
+      font-size: 0.85rem;
     }
 
     .sc-name {
       font-weight: 700;
     }
 
-    .alina-row .sc-name { color: #be185d; }
-    .robabe-row .sc-name { color: #334155; }
-    .tie-row .sc-name { color: #854d0e; }
-
     .sc-val {
-      font-size: 0.85rem;
-      color: var(--text-main);
+      color: var(--accent-amber);
     }
 
+    /* PLAYERS CARD */
     .players-card {
       padding: 16px;
     }
 
     .players-card h4 {
-      font-size: 1.05rem;
+      font-size: 0.95rem;
+      font-weight: 800;
       margin-bottom: 12px;
-      color: var(--text-main);
     }
 
     .players-list {
@@ -967,41 +955,43 @@ export interface ScoreboardData {
       align-items: center;
       gap: 10px;
       padding: 8px 12px;
+      border-radius: var(--radius-md);
       background: #fbf9f5;
-      border-radius: 8px;
-      border: 1px solid var(--border-subtle);
+      border: 1px solid transparent;
     }
 
     .player-item.is-active-turn {
       border-color: var(--accent-amber);
-      background: #fef3c7;
+      background: #fffbf0;
     }
 
     .player-avatar {
       width: 32px;
       height: 32px;
       border-radius: 50%;
-      background: var(--accent-amber);
+      background: #f1ece6;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #fff;
-      font-size: 0.9rem;
+      color: var(--accent-amber);
     }
 
     .player-details {
       flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
     .p-name {
-      font-weight: 600;
-      color: var(--text-main);
+      font-weight: 700;
+      font-size: 0.9rem;
     }
 
     .you-badge {
       font-size: 0.75rem;
       color: var(--accent-amber);
-      margin-left: 4px;
+      font-weight: 600;
     }
 
     .status-dot {
@@ -1009,146 +999,49 @@ export interface ScoreboardData {
       height: 10px;
       border-radius: 50%;
     }
-    .status-dot.green { background: var(--color-green); box-shadow: 0 0 6px var(--color-green); }
-    .status-dot.orange { background: #f59e0b; }
+    .status-dot.green { background: var(--color-green); }
+    .status-dot.orange { background: var(--accent-amber); }
 
-    /* PAST GAMES CUMULATIVE HISTORY */
+    /* PAST GAMES HISTORY */
     .past-games-card {
       padding: 16px;
     }
-
     .past-games-card h4 {
-      font-size: 1.05rem;
-      margin-bottom: 12px;
-      color: var(--text-main);
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      font-size: 0.95rem;
+      font-weight: 800;
+      margin-bottom: 10px;
     }
-
     .past-games-list {
       display: flex;
       flex-direction: column;
       gap: 8px;
-      max-height: 180px;
-      overflow-y: auto;
     }
-
     .past-game-item {
       background: #fbf9f5;
       border: 1px solid var(--border-subtle);
-      border-radius: 8px;
+      border-radius: 6px;
       padding: 8px 10px;
+      font-size: 0.82rem;
     }
-
     .pg-header {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      font-size: 0.85rem;
-      margin-bottom: 2px;
+      margin-bottom: 4px;
     }
-
     .pg-winner-badge {
-      font-weight: 700;
       color: var(--accent-amber);
-      font-size: 0.8rem;
+      font-weight: 700;
     }
-
     .pg-details {
-      font-size: 0.75rem;
       color: var(--text-muted);
     }
 
-    /* MOBILE PHONES OPTIMIZATION (< 768px & < 600px) */
-    @media (max-width: 900px) {
+    @media (max-width: 860px) {
       .game-grid {
         grid-template-columns: 1fr;
       }
-      .top-bar {
-        flex-direction: column;
-        gap: 10px;
-      }
-    }
-
-    @media (max-width: 768px) {
       .play-split-row {
         grid-template-columns: 1fr;
-        gap: 12px;
-      }
-    }
-
-    @media (max-width: 600px) {
-      .board-wrapper {
-        padding: 6px;
-      }
-      .top-bar {
-        padding: 10px;
-        gap: 8px;
-      }
-      .header-scoreboard {
-        font-size: 0.78rem;
-        padding: 3px 10px;
-      }
-      .top-secret-bar {
-        padding: 4px 10px;
-        font-size: 0.82rem;
-      }
-      .secret-digits, .secret-masked {
-        font-size: 1.05rem;
-        letter-spacing: 2px;
-      }
-
-      /* MOBILE GUESSES TABLE PERFECT RESPONSIVE FIT */
-      .dual-guesses-card {
-        padding: 10px;
-      }
-      .dual-guesses-header {
-        gap: 6px;
-        margin-bottom: 4px;
-        padding-bottom: 4px;
-      }
-      .col-head {
-        font-size: 0.82rem;
-      }
-      .dual-guesses-body {
-        max-height: 330px;
-        gap: 2px;
-      }
-      .dual-row {
-        gap: 6px;
-        padding: 2px 0;
-      }
-      .dual-col {
-        padding: 1px 3px;
-      }
-      .rg-num {
-        font-size: 0.7rem;
-        width: 16px;
-      }
-      .mg-num {
-        font-size: 0.88rem;
-        letter-spacing: 1px;
-      }
-      .mg-score-digit {
-        width: 20px;
-        height: 20px;
-        font-size: 0.75rem;
-      }
-
-      /* MOBILE CORNER TOAST */
-      .speech-bubble-corner {
-        max-width: 250px;
-        padding: 10px 14px;
-      }
-      .bubble-title {
-        font-size: 1.1rem;
-      }
-      .bubble-text {
-        font-size: 0.9rem;
-      }
-      .dog-emoji {
-        font-size: 4.2rem;
       }
     }
   `]
@@ -1272,18 +1165,72 @@ export class GameBoardComponent implements OnInit, DoCheck {
   }
 
   isValidSecret(val: string): boolean {
-    return typeof val === 'string' && val.length === 4 && /^\d{4}$/.test(val);
+    if (typeof val !== 'string') return false;
+    const isWords = this.gameSocket.gameState()?.game_type === 'words';
+    val = val.trim();
+    if (isWords) {
+      return val.length === 5 && /^[a-zA-ZăâîșțĂÂÎȘȚ]+$/.test(val);
+    } else {
+      return val.length === 4 && /^\d{4}$/.test(val);
+    }
   }
 
-  submitSecret() {
-    if (this.isValidSecret(this.mySecretInput)) {
-      this.gameSocket.setSecret(this.mySecretInput);
+  @HostListener('window:keydown', ['$event'])
+  handleGlobalKeyboard(event: KeyboardEvent) {
+    // Ignore keypresses if user is currently typing in chat input or any text area
+    const activeEl = document.activeElement;
+    if (activeEl && (activeEl.tagName === 'TEXTAREA' || activeEl.classList.contains('chat-input-field'))) {
+      return;
+    }
+
+    const state = this.gameSocket.gameState();
+    if (!state) return;
+
+    const isWords = state.game_type === 'words';
+    const maxLength = isWords ? 5 : 4;
+
+    // STATE 1: WAITING_FOR_SECRETS
+    if (state.state === 'WAITING_FOR_SECRETS' && !this.myPlayerInfo?.has_secret) {
+      if (event.key === 'Enter') {
+        this.submitSecret();
+      } else if (event.key === 'Backspace') {
+        this.mySecretInput = this.mySecretInput.slice(0, -1);
+      } else if (event.key.length === 1) {
+        if (isWords && /^[a-zA-ZăâîșțĂÂÎȘȚ]$/.test(event.key)) {
+          if (this.mySecretInput.length < maxLength) {
+            this.mySecretInput += event.key.toUpperCase();
+          }
+        } else if (!isWords && /^\d$/.test(event.key)) {
+          if (this.mySecretInput.length < maxLength) {
+            this.mySecretInput += event.key;
+          }
+        }
+      }
+    }
+
+    // STATE 2: PLAYING (MY TURN)
+    else if (state.state === 'PLAYING' && this.isMyTurn()) {
+      if (event.key === 'Enter') {
+        this.submitGuess();
+      } else if (event.key === 'Backspace') {
+        this.guessInput = this.guessInput.slice(0, -1);
+      } else if (event.key.length === 1) {
+        if (isWords && /^[a-zA-ZăâîșțĂÂÎȘȚ]$/.test(event.key)) {
+          if (this.guessInput.length < maxLength) {
+            this.guessInput += event.key.toUpperCase();
+          }
+        } else if (!isWords && /^\d$/.test(event.key)) {
+          if (this.guessInput.length < maxLength) {
+            this.guessInput += event.key;
+          }
+        }
+      }
     }
   }
 
   submitGuess() {
     if (this.isMyTurn() && this.isValidSecret(this.guessInput)) {
-      this.gameSocket.makeGuess(this.guessInput);
+      this.gameSocket.makeGuess(this.guessInput.toUpperCase());
       this.guessInput = '';
       this.dismissTurnBanner();
     }
@@ -1309,7 +1256,11 @@ export class GameBoardComponent implements OnInit, DoCheck {
     if (oppGuesses.length > 0) {
       const lastOppGuess = oppGuesses[oppGuesses.length - 1];
       const count = lastOppGuess.exact_matches;
-      return `Adversarul a ghicit ${count} ${count === 1 ? 'cifră' : 'cifre'}.`;
+      if (state.game_type === 'words') {
+        return `Adversarul a ghicit ${count} ${count === 1 ? 'poziție' : 'poziții'}.`;
+      } else {
+        return `Adversarul a ghicit ${count} ${count === 1 ? 'cifră' : 'cifre'}.`;
+      }
     }
     return 'Adversarul a mutat. Este rândul tău!';
   }

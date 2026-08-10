@@ -5,6 +5,7 @@ import { Observable, firstValueFrom } from 'rxjs';
 export interface GameState {
   room_id: string;
   is_bot_game: boolean;
+  game_type?: 'numbers' | 'words';
   state: 'WAITING_FOR_PLAYERS' | 'WAITING_FOR_SECRETS' | 'PLAYING' | 'FINISHED' | 'PLAYER_DISCONNECTED';
   current_turn: string | null;
   current_turn_name: string | null;
@@ -65,12 +66,43 @@ export class GameSocketService {
 
   constructor(private http: HttpClient) {}
 
-  async createRoom(isBot: boolean): Promise<string> {
+  async createRoom(isBot: boolean, gameType: string = 'numbers'): Promise<string> {
     const isHttps = window.location.protocol === 'https:';
     const httpProtocol = isHttps ? 'https:' : 'http:';
     const url = `${httpProtocol}//${this.backendHost}/api/rooms/create`;
-    const res = await firstValueFrom(this.http.post<{ room_id: string }>(url, { is_bot: isBot }));
+    const res = await firstValueFrom(this.http.post<{ room_id: string }>(url, { is_bot: isBot, game_type: gameType }));
     return res.room_id;
+  }
+
+  async getWaitingRooms(gameType?: string): Promise<{ room_id: string; host_name: string; game_type?: string }[]> {
+    const isHttps = window.location.protocol === 'https:';
+    const httpProtocol = isHttps ? 'https:' : 'http:';
+    const query = gameType ? `?game_type=${encodeURIComponent(gameType)}` : '';
+    const url = `${httpProtocol}//${this.backendHost}/api/rooms/waiting${query}`;
+    return await firstValueFrom(this.http.get<{ room_id: string; host_name: string; game_type?: string }[]>(url));
+  }
+
+  async getAllPlayers(): Promise<string[]> {
+    const isHttps = window.location.protocol === 'https:';
+    const httpProtocol = isHttps ? 'https:' : 'http:';
+    const url = `${httpProtocol}//${this.backendHost}/api/players`;
+    return await firstValueFrom(this.http.get<string[]>(url));
+  }
+
+  async savePlayer(name: string): Promise<string[]> {
+    const isHttps = window.location.protocol === 'https:';
+    const httpProtocol = isHttps ? 'https:' : 'http:';
+    const url = `${httpProtocol}//${this.backendHost}/api/players`;
+    const res = await firstValueFrom(this.http.post<{ success: boolean; players: string[] }>(url, { name }));
+    return res.players;
+  }
+
+  async getGlobalStats(gameType?: string): Promise<{ [winner_name: string]: number }> {
+    const isHttps = window.location.protocol === 'https:';
+    const httpProtocol = isHttps ? 'https:' : 'http:';
+    const query = gameType ? `?game_type=${encodeURIComponent(gameType)}` : '';
+    const url = `${httpProtocol}//${this.backendHost}/api/stats${query}`;
+    return await firstValueFrom(this.http.get<{ [winner_name: string]: number }>(url));
   }
 
   connectSocket(roomId: string, playerName: string) {

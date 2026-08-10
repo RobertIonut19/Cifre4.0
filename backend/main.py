@@ -8,8 +8,12 @@ from pydantic import BaseModel
 
 from room_manager import RoomManager, Room
 from game_logic import validate_number
+from database import init_db, save_player, get_all_players, get_scores_stats
 
 app = FastAPI(title="4-Digit Number Guessing Game API")
+
+# Initialize SQLite database on startup
+init_db()
 
 # Enable CORS for frontend integration
 app.add_middleware(
@@ -24,22 +28,43 @@ room_manager = RoomManager()
 
 class CreateRoomRequest(BaseModel):
     is_bot: bool = False
+    game_type: str = "numbers"
+
+class SavePlayerRequest(BaseModel):
+    name: str
 
 @app.get("/")
 def read_root():
-    return {"status": "ok", "message": "4-Digit Guessing Game API is running!"}
+    return {"status": "ok", "message": "Multi-Game API is running!"}
 
 @app.post("/api/rooms/create")
 def create_room(req: CreateRoomRequest):
-    room_id = room_manager.create_room(is_bot_game=req.is_bot)
-    return {"room_id": room_id, "is_bot": req.is_bot}
+    room_id = room_manager.create_room(is_bot_game=req.is_bot, game_type=req.game_type)
+    return {"room_id": room_id, "is_bot": req.is_bot, "game_type": req.game_type}
+
+@app.get("/api/rooms/waiting")
+def get_waiting_rooms(game_type: str = None):
+    return room_manager.get_waiting_rooms(game_type=game_type)
+
+@app.get("/api/players")
+def get_players_endpoint():
+    return get_all_players()
+
+@app.post("/api/players")
+def save_player_endpoint(req: SavePlayerRequest):
+    success = save_player(req.name)
+    return {"success": success, "players": get_all_players()}
+
+@app.get("/api/stats")
+def get_stats_endpoint(game_type: str = None):
+    return get_scores_stats(game_type=game_type)
 
 @app.get("/api/rooms/{room_id}")
 def get_room_info(room_id: str):
     room = room_manager.get_room(room_id)
     if not room:
         raise HTTPException(status_code=404, detail="Room not found")
-    return {"room_id": room.room_id, "state": room.state, "player_count": len(room.players)}
+    return {"room_id": room.room_id, "state": room.state, "player_count": len(room.players), "game_type": room.game_type}
 
 
 async def broadcast_room_state(room: Room):
@@ -136,9 +161,10 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, player_name: st
                     await broadcast_room_state(room)
                     await handle_bot_turn_if_needed(room)
                 else:
+                    err_msg = "Cuvântul secret trebuie să fie format din 5 litere!" if room.game_type == "words" else "Numărul secret trebuie să fie format din exact 4 cifre (0000 - 9999)!"
                     await websocket.send_text(json.dumps({
                         "type": "ERROR", 
-                        "message": "Numărul secret trebuie să fie format din exact 4 cifre (0000 - 9999)!"
+                        "message": err_msg
                     }))
 
             elif msg_type == "MAKE_GUESS":
