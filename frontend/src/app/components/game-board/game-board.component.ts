@@ -1177,11 +1177,8 @@ export class GameBoardComponent implements OnInit, DoCheck {
 
   @HostListener('window:keydown', ['$event'])
   handleGlobalKeyboard(event: KeyboardEvent) {
-    // Ignore keypresses if user is currently typing in chat input or any text area
     const activeEl = document.activeElement;
-    if (activeEl && (activeEl.tagName === 'TEXTAREA' || activeEl.classList.contains('chat-input-field'))) {
-      return;
-    }
+    const isInputFocused = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA');
 
     const state = this.gameSocket.gameState();
     if (!state) return;
@@ -1193,7 +1190,12 @@ export class GameBoardComponent implements OnInit, DoCheck {
     if (state.state === 'WAITING_FOR_SECRETS' && !this.myPlayerInfo?.has_secret) {
       if (event.key === 'Enter') {
         this.submitSecret();
-      } else if (event.key === 'Backspace') {
+        return;
+      }
+      if (isInputFocused) {
+        return; // Let standard input handle typing natively to prevent duplication
+      }
+      if (event.key === 'Backspace') {
         this.mySecretInput = this.mySecretInput.slice(0, -1);
       } else if (event.key.length === 1) {
         if (isWords && /^[a-zA-ZăâîșțĂÂÎȘȚ]$/.test(event.key)) {
@@ -1212,7 +1214,12 @@ export class GameBoardComponent implements OnInit, DoCheck {
     else if (state.state === 'PLAYING' && this.isMyTurn()) {
       if (event.key === 'Enter') {
         this.submitGuess();
-      } else if (event.key === 'Backspace') {
+        return;
+      }
+      if (isInputFocused) {
+        return; // Let standard input handle typing natively to prevent duplication
+      }
+      if (event.key === 'Backspace') {
         this.guessInput = this.guessInput.slice(0, -1);
       } else if (event.key.length === 1) {
         if (isWords && /^[a-zA-ZăâîșțĂÂÎȘȚ]$/.test(event.key)) {
