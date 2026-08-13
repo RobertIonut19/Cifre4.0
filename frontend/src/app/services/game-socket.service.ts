@@ -55,13 +55,19 @@ export class GameSocketService {
 
   private get backendHost(): string {
     const hostname = window.location.hostname || 'localhost';
-    if (hostname !== 'cifre4-0.onrender.com' && !hostname.endsWith('render.com')) {
+    const port = window.location.port;
+
+    // Local Angular dev server (e.g. ng serve on port 4300 or 4200)
+    if (port === '4300' || port === '4200' || port === '8000') {
       return `${hostname}:8000`;
     }
+
+    // Production environment (Render.com cloud deployment)
     if ((window as any).BACKEND_URL) {
       return (window as any).BACKEND_URL.replace(/^https?:\/\//, '').replace(/\/$/, '');
     }
-    return 'cifre4-0.onrender.com';
+
+    return window.location.host || 'cifre4-0.onrender.com';
   }
 
   constructor(private http: HttpClient) {}
