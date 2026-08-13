@@ -66,6 +66,12 @@ def validate_word_dex(word: str):
     is_valid, message = validate_word_dexonline(word)
     return {"valid": is_valid, "word": word.upper(), "message": message}
 
+@app.get("/api/words/definition/{word}")
+def get_word_definition_endpoint(word: str):
+    from word_game_logic import get_dexonline_definition
+    definition = get_dexonline_definition(word)
+    return {"word": word.upper(), "definition": definition}
+
 @app.get("/api/rooms/{room_id}")
 def get_room_info(room_id: str):
     room = room_manager.get_room(room_id)

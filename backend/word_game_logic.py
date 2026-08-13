@@ -1,7 +1,8 @@
 """
-Game logic and bot agent for 5-Letter Word Guessing Game with Dexonline validation.
+Game logic and bot agent for 5-Letter Word Guessing Game with Dexonline validation and definition lookup.
 """
 import random
+import re
 import unicodedata
 import urllib.request
 import json
@@ -24,8 +25,9 @@ FIVE_LETTER_WORDS = [
 # Filter exact 5-letter normalized uppercase words
 FIVE_LETTER_WORDS = [strip_diacritics(w) for w in FIVE_LETTER_WORDS if len(strip_diacritics(w)) == 5]
 
-# In-memory cache for validated Dexonline words
+# In-memory caches
 DEX_VALIDATED_CACHE: dict = {}
+DEX_DEFINITION_CACHE: dict = {}
 
 def validate_word(word_str: str) -> bool:
     """Validates if a string is exactly 5 letters (alphabetic), ignoring diacritics."""
@@ -70,13 +72,47 @@ def validate_word_dexonline(word_str: str) -> Tuple[bool, str]:
                 if len(defs) > 0:
                     DEX_VALIDATED_CACHE[clean_word] = True
                     return True, "Cuvânt valid în Dexonline!"
-    except Exception as e:
+    except Exception:
         # Fallback if Dexonline is temporarily unreachable
         DEX_VALIDATED_CACHE[clean_word] = True
         return True, "Cuvânt acceptat."
 
     DEX_VALIDATED_CACHE[clean_word] = False
     return False, f'Cuvântul "{clean_word}" nu există în dicționarul Dexonline!'
+
+def get_dexonline_definition(word_str: str) -> str:
+    """
+    Fetches the clean dictionary definition of a word from Dexonline.
+    Normalizes diacritics and uses in-memory caching.
+    """
+    if not isinstance(word_str, str):
+        return "Definiție indisponibilă."
+
+    clean_word = strip_diacritics(word_str.strip()).upper()
+
+    if clean_word in DEX_DEFINITION_CACHE:
+        return DEX_DEFINITION_CACHE[clean_word]
+
+    try:
+        url = f"https://dexonline.ro/definitie/{clean_word.lower()}/json"
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
+        with urllib.request.urlopen(req, timeout=3.5) as resp:
+            if resp.status == 200:
+                data = json.loads(resp.read().decode('utf-8'))
+                defs = data.get('definitions', [])
+                if len(defs) > 0:
+                    raw_html = defs[0].get('htmlRep', '')
+                    clean_text = re.sub(r'<[^>]+>', '', raw_html).strip()
+                    if len(clean_text) > 260:
+                        clean_text = clean_text[:257] + "..."
+                    DEX_DEFINITION_CACHE[clean_word] = clean_text
+                    return clean_text
+    except Exception:
+        pass
+
+    fallback_msg = f"Cuvântul {clean_word} este un cuvânt valid din limba română."
+    DEX_DEFINITION_CACHE[clean_word] = fallback_msg
+    return fallback_msg
 
 def count_matching_positions(secret: str, guess: str) -> int:
     """

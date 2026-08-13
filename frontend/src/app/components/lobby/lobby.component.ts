@@ -95,6 +95,7 @@ export interface WaitingRoomInfo {
               
               <button 
                 class="btn btn-neutral btn-block-love" 
+                (click)="$event.stopPropagation(); createPvpRoom('numbers')"
                 [disabled]="!finalPlayerName.trim() || isLoading">
                 <i class="fa-solid fa-heart"></i> Joacă 1v1 cu Iubirea Ta
               </button>
@@ -110,6 +111,7 @@ export interface WaitingRoomInfo {
               
               <button 
                 class="btn btn-neutral btn-block-love" 
+                (click)="$event.stopPropagation(); createPvpRoom('words')"
                 [disabled]="!finalPlayerName.trim() || isLoading">
                 <i class="fa-solid fa-heart"></i> Joacă 1v1 cu Iubirea Ta
               </button>
@@ -858,7 +860,7 @@ export class LobbyComponent implements OnInit, OnDestroy {
     this.closeBotModal();
     this.isLoading = true;
     try {
-      await this.ensurePlayerSaved(name);
+      this.ensurePlayerSaved(name);
       const roomId = await this.gameSocket.createRoom(true, gameType);
       this.gameSocket.connectSocket(roomId, name);
     } catch (err) {
@@ -873,7 +875,7 @@ export class LobbyComponent implements OnInit, OnDestroy {
     if (!name) return;
     this.isLoading = true;
     try {
-      await this.ensurePlayerSaved(name);
+      this.ensurePlayerSaved(name);
       const roomId = await this.gameSocket.createRoom(false, gameType);
       this.gameSocket.connectSocket(roomId, name);
     } catch (err) {
@@ -886,7 +888,7 @@ export class LobbyComponent implements OnInit, OnDestroy {
   async joinDirectRoom(roomId: string) {
     const name = this.finalPlayerName.trim();
     if (!name || !roomId) return;
-    await this.ensurePlayerSaved(name);
+    this.ensurePlayerSaved(name);
     this.gameSocket.connectSocket(roomId, name);
   }
 }

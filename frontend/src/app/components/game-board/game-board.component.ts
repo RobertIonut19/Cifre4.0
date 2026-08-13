@@ -190,7 +190,13 @@ export interface ScoreboardData {
                     <div class="dual-col col-mine">
                       <span class="rg-num">{{ rg.roundNumber }}.</span>
                       <ng-container *ngIf="getMyGuessForRound(rg) as mg; else noMyGuess">
-                        <strong class="mg-num">{{ mg.guess }}</strong>
+                        <strong 
+                          class="mg-num" 
+                          [class.word-hoverable]="state.game_type === 'words'"
+                          (mouseenter)="onWordHover(mg.guess)" 
+                          (mouseleave)="onWordLeave()">
+                          {{ mg.guess }}
+                        </strong>
                         <span class="mg-score-digit" [class]="'score-color-' + mg.exact_matches">{{ mg.exact_matches }}</span>
                       </ng-container>
                       <ng-template #noMyGuess>
@@ -202,7 +208,13 @@ export interface ScoreboardData {
                     <div class="dual-col col-opponent">
                       <span class="rg-num">{{ rg.roundNumber }}.</span>
                       <ng-container *ngIf="getOpponentGuessForRound(rg) as og; else noOpponentGuess">
-                        <strong class="mg-num opp-num">{{ og.guess }}</strong>
+                        <strong 
+                          class="mg-num opp-num" 
+                          [class.word-hoverable]="state.game_type === 'words'"
+                          (mouseenter)="onWordHover(og.guess)" 
+                          (mouseleave)="onWordLeave()">
+                          {{ og.guess }}
+                        </strong>
                         <span class="mg-score-digit opp-score" [class]="'score-color-' + og.exact_matches">{{ og.exact_matches }}</span>
                       </ng-container>
                       <ng-template #noOpponentGuess>
@@ -330,9 +342,61 @@ export interface ScoreboardData {
 
         </div>
       </div>
+
+      <!-- FLOATING DEXONLINE HOVER TOOLTIP BANNER -->
+      <div *ngIf="hoveredWordDefinition" class="dex-hover-tooltip animate-fade-in">
+        <div class="dex-tt-header">
+          <i class="fa-solid fa-book-bookmark text-amber"></i>
+          <strong>{{ hoveredWord }}</strong> &mdash; Definiție Dexonline:
+        </div>
+        <div class="dex-tt-body">
+          {{ hoveredWordDefinition }}
+        </div>
+      </div>
+
     </div>
   `,
   styles: [`
+    .word-hoverable {
+      cursor: help;
+      text-decoration: underline dotted var(--accent-amber);
+      transition: color 0.15s ease;
+    }
+    .word-hoverable:hover {
+      color: var(--accent-amber) !important;
+    }
+
+    .dex-hover-tooltip {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 999999;
+      background: #ffffff;
+      border: 2px solid var(--accent-amber);
+      border-radius: var(--radius-md);
+      padding: 12px 18px;
+      max-width: 520px;
+      width: 90%;
+      box-shadow: 0 12px 32px rgba(60, 45, 35, 0.25);
+      text-align: left;
+    }
+
+    .dex-tt-header {
+      font-size: 0.9rem;
+      color: var(--text-main);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dex-tt-body {
+      font-size: 0.85rem;
+      color: #374151;
+      line-height: 1.4;
+    }
+
     .board-wrapper {
       max-width: 1280px;
       margin: 0 auto;
@@ -1053,6 +1117,10 @@ export class GameBoardComponent implements OnInit, DoCheck {
   guessInput: string = '';
   copiedCode: boolean = false;
 
+  hoveredWord: string | null = null;
+  hoveredWordDefinition: string | null = null;
+  definitionCacheMap: Map<string, string> = new Map();
+
   showMyTurnBanner: boolean = false;
   private previousIsMyTurn: boolean = false;
   private bannerTimer: any = null;
@@ -1342,6 +1410,35 @@ export class GameBoardComponent implements OnInit, DoCheck {
     });
 
     return Object.values(roundsMap).reverse();
+  }
+
+  async onWordHover(word: string) {
+    if (!word || word.length !== 5 || this.gameSocket.gameState()?.game_type !== 'words') return;
+    const cleanWord = word.toUpperCase();
+    this.hoveredWord = cleanWord;
+
+    if (this.definitionCacheMap.has(cleanWord)) {
+      this.hoveredWordDefinition = this.definitionCacheMap.get(cleanWord) || '';
+      return;
+    }
+
+    this.hoveredWordDefinition = 'Se încarcă definiția de pe Dexonline...';
+    try {
+      const def = await this.gameSocket.getWordDefinition(cleanWord);
+      this.definitionCacheMap.set(cleanWord, def);
+      if (this.hoveredWord === cleanWord) {
+        this.hoveredWordDefinition = def;
+      }
+    } catch (e) {
+      if (this.hoveredWord === cleanWord) {
+        this.hoveredWordDefinition = 'Definiție indisponibilă pe Dexonline.';
+      }
+    }
+  }
+
+  onWordLeave() {
+    this.hoveredWord = null;
+    this.hoveredWordDefinition = null;
   }
 
   copyRoomCode() {

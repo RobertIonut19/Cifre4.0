@@ -112,6 +112,15 @@ export class GameSocketService {
     return await firstValueFrom(this.http.get<{ valid: boolean; message: string }>(url));
   }
 
+  async getWordDefinition(word: string): Promise<string> {
+    if (!word) return '';
+    const isHttps = window.location.protocol === 'https:';
+    const httpProtocol = isHttps ? 'https:' : 'http:';
+    const url = `${httpProtocol}//${this.backendHost}/api/words/definition/${encodeURIComponent(word)}`;
+    const res = await firstValueFrom(this.http.get<{ word: string; definition: string }>(url));
+    return res.definition;
+  }
+
   connectSocket(roomId: string, playerName: string) {
     this.disconnect();
     this.errorMessage.set(null);
