@@ -15,7 +15,7 @@ export type NoteItemState = 'NEUTRAL' | 'RED' | 'GREEN';
       <div class="notes-header">
         <h3>
           <i class="fa-solid" [class.fa-calculator]="gameType !== 'words'" [class.fa-font]="gameType === 'words'" class="text-amber"></i> 
-          {{ gameType === 'words' ? 'Notițe Pozionale Cuvinte (5 Litere)' : 'Notițe & Matrice de Eliminare (4 Cifre)' }}
+          {{ gameType === 'words' ? 'Notițe poziții litere' : 'Notițe & Matrice de Eliminare (4 Cifre)' }}
         </h3>
         <button class="btn btn-secondary btn-sm" (click)="resetNotes()">
           <i class="fa-solid fa-rotate-left"></i> Resetează
@@ -75,33 +75,25 @@ export type NoteItemState = 'NEUTRAL' | 'RED' | 'GREEN';
       </div>
 
       <!-- ========================================== -->
-      <!-- MODE 2: WORDS (CUVINTE 5) - VERTICAL LIST OF 5 POSITIONS -->
+      <!-- MODE 2: WORDS (CUVINTE 5) - VERTICAL LIST DESCENDING 5 TO 1 -->
       <!-- ========================================== -->
       <div *ngIf="gameType === 'words'" class="word-vertical-notes-wrapper">
-        <p class="notes-hint">
-          Scrie pe tastatură literele posibile pentru fiecare dintre cele 5 poziții:
-        </p>
-
         <div class="vertical-positions-list">
-          <div *ngFor="let pIdx of [0, 1, 2, 3, 4]" class="vert-pos-card">
-            <div class="vert-pos-header">
-              <span class="pos-badge">Poziția {{ pIdx + 1 }}</span>
-              <span class="pos-subtext">Litere posibile:</span>
-            </div>
-
-            <input 
-              type="text" 
-              class="form-input vert-pos-input" 
-              placeholder="Scrie literele posibile aici (ex: A, B, C)..." 
-              [(ngModel)]="wordPositionsText[pIdx]"
-              (ngModelChange)="onWordPosChange(pIdx)"
-              style="text-transform: uppercase;">
-
-            <!-- Preview tags of entered letters for this position -->
-            <div *ngIf="getLettersArray(wordPositionsText[pIdx]).length > 0" class="entered-tags-row">
-              <span *ngFor="let l of getLettersArray(wordPositionsText[pIdx])" class="tag-letter-green">
-                {{ l }}
-              </span>
+          <div *ngFor="let posNum of [1, 2, 3, 4, 5]" class="pos-row">
+            <div class="pos-num-box">{{ posNum }}</div>
+            <div class="pos-input-wrapper">
+              <input 
+                type="text" 
+                class="form-input pos-letter-input" 
+                [placeholder]="'Litere posibile poziția ' + posNum + '...'" 
+                [(ngModel)]="wordPositionsText[posNum - 1]"
+                (ngModelChange)="onWordPosChange(posNum - 1)"
+                style="text-transform: uppercase;">
+              <div *ngIf="getLettersArray(wordPositionsText[posNum - 1]).length > 0" class="entered-tags-inline">
+                <span *ngFor="let l of getLettersArray(wordPositionsText[posNum - 1])" class="tag-letter-green">
+                  {{ l }}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -125,6 +117,11 @@ export type NoteItemState = 'NEUTRAL' | 'RED' | 'GREEN';
   styles: [`
     .notes-container {
       padding: 14px 16px;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: var(--radius-lg);
+      color: #ffffff;
     }
 
     .notes-header {
@@ -137,7 +134,7 @@ export type NoteItemState = 'NEUTRAL' | 'RED' | 'GREEN';
     .notes-header h3 {
       font-size: 1.02rem;
       font-weight: 800;
-      color: var(--text-main);
+      color: #ffffff;
       display: flex;
       align-items: center;
       gap: 6px;
@@ -152,12 +149,12 @@ export type NoteItemState = 'NEUTRAL' | 'RED' | 'GREEN';
 
     .notes-hint {
       font-size: 0.8rem;
-      color: var(--text-muted);
+      color: #cbd5e1;
       margin-bottom: 12px;
     }
 
-    .legend-red { color: var(--color-red); font-weight: 600; }
-    .legend-green { color: var(--color-green); font-weight: 600; }
+    .legend-red { color: #f87171; font-weight: 600; }
+    .legend-green { color: #4ade80; font-weight: 600; }
 
     /* ========================================== */
     /* NUMBERS MODE STYLES */
@@ -174,16 +171,17 @@ export type NoteItemState = 'NEUTRAL' | 'RED' | 'GREEN';
     }
 
     .position-card {
-      background: var(--bg-card-secondary);
-      border: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: var(--radius-md);
       padding: 8px;
+      color: #ffffff;
     }
 
     .position-title {
       font-size: 0.8rem;
       font-weight: 800;
-      color: var(--text-main);
+      color: #ffffff;
       margin-bottom: 6px;
       text-align: center;
     }
@@ -196,9 +194,9 @@ export type NoteItemState = 'NEUTRAL' | 'RED' | 'GREEN';
     }
 
     .digit-btn {
-      background: #f1ece6;
-      border: 1px solid #e2d9cd;
-      color: #574c43;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #ffffff;
       border-radius: 4px;
       font-weight: 700;
       font-size: 0.8rem;
@@ -207,25 +205,29 @@ export type NoteItemState = 'NEUTRAL' | 'RED' | 'GREEN';
       transition: all 0.12s ease;
     }
 
-    .digit-btn.state-red { background: var(--color-red-bg); border-color: var(--color-red); color: var(--color-red); }
-    .digit-btn.state-green { background: var(--color-green-bg); border-color: var(--color-green); color: var(--color-green); }
+    .digit-btn.state-red { background: rgba(239, 68, 68, 0.25); border-color: #ef4444; color: #fca5a5; }
+    .digit-btn.state-green { background: rgba(16, 185, 129, 0.25); border-color: #10b981; color: #86efac; }
 
     .columns-split { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
-    .column { background: #ffffff; border: 1px solid var(--border-subtle); border-radius: 4px; padding: 4px; min-height: 34px; }
-    .col-red { border-top: 2px solid var(--color-red); }
-    .col-green { border-top: 2px solid var(--color-green); }
+    .column { background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px; padding: 4px; min-height: 34px; color: #ffffff; }
+    .col-red { border-top: 2px solid #ef4444; }
+    .col-green { border-top: 2px solid #10b981; }
     .col-header { font-size: 0.65rem; font-weight: 700; margin-bottom: 3px; display: flex; align-items: center; gap: 2px; }
-    .col-red .col-header { color: var(--color-red); }
-    .col-green .col-header { color: var(--color-green); }
+    .col-red .col-header { color: #fca5a5; }
+    .col-green .col-header { color: #86efac; }
     .digits-list { display: flex; flex-wrap: wrap; gap: 2px; }
     .tag { font-size: 0.7rem; font-weight: 700; padding: 1px 4px; border-radius: 3px; }
-    .tag-red { background: var(--color-red-bg); color: var(--color-red); }
-    .tag-green { background: var(--color-green-bg); color: var(--color-green); }
-    .empty-text { color: var(--text-light); font-size: 0.7rem; }
+    .tag-red { background: rgba(239, 68, 68, 0.25); color: #fca5a5; }
+    .tag-green { background: rgba(16, 185, 129, 0.25); color: #86efac; }
+    .empty-text { color: #94a3b8; font-size: 0.7rem; }
 
     /* ========================================== */
     /* WORDS MODE STYLES (VERTICAL 5 POSITIONS) */
     /* ========================================== */
+    .word-vertical-notes-wrapper {
+      margin-bottom: 12px;
+    }
+
     .word-vertical-notes-wrapper {
       margin-bottom: 12px;
     }
@@ -236,59 +238,62 @@ export type NoteItemState = 'NEUTRAL' | 'RED' | 'GREEN';
       gap: 10px;
     }
 
-    .vert-pos-card {
-      background: #faf7f2;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      padding: 10px 12px;
-    }
-
-    .vert-pos-header {
+    .pos-row {
       display: flex;
       align-items: center;
-      gap: 8px;
-      margin-bottom: 6px;
+      gap: 12px;
     }
 
-    .pos-badge {
-      font-size: 0.8rem;
+    .pos-num-box {
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(217, 119, 6, 0.4));
+      border: 2px solid #f59e0b;
+      border-radius: 10px;
+      color: #fef08a;
+      font-size: 1.25rem;
       font-weight: 800;
-      color: #78350f;
-      background: #fef3c7;
-      border: 1px solid #fde68a;
-      padding: 2px 8px;
-      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
     }
 
-    .pos-subtext {
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--text-main);
+    .pos-input-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
 
-    .vert-pos-input {
-      font-size: 0.95rem;
+    .pos-letter-input {
+      font-size: 1.05rem;
       font-weight: 700;
-      letter-spacing: 1px;
-      padding: 8px 12px;
-      background: #ffffff;
-      color: var(--text-main);
+      letter-spacing: 2px;
+      padding: 10px 14px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      color: #ffffff;
+      text-transform: uppercase;
+      width: 100%;
     }
 
-    .entered-tags-row {
+    .entered-tags-inline {
       display: flex;
       flex-wrap: wrap;
       gap: 4px;
-      margin-top: 6px;
+      margin-top: 2px;
     }
 
     .tag-letter-green {
       font-family: 'Outfit', monospace;
       font-size: 0.85rem;
       font-weight: 800;
-      background: #dcfce7;
-      border: 1px solid #86efac;
-      color: #166534;
+      background: rgba(16, 185, 129, 0.25);
+      border: 1px solid #10b981;
+      color: #86efac;
       padding: 2px 8px;
       border-radius: 4px;
     }
@@ -303,7 +308,7 @@ export type NoteItemState = 'NEUTRAL' | 'RED' | 'GREEN';
       font-size: 0.8rem;
       font-weight: 600;
       margin-bottom: 4px;
-      color: var(--text-main);
+      color: #ffffff;
     }
 
     .scratchpad-textarea {
@@ -311,6 +316,9 @@ export type NoteItemState = 'NEUTRAL' | 'RED' | 'GREEN';
       font-family: inherit;
       font-size: 0.85rem;
       padding: 6px 10px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #ffffff;
     }
   `]
 })

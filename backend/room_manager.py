@@ -21,6 +21,7 @@ class Room:
         self.winner: Optional[str] = None # player_id or "TIE"
         self.round_first_winner: Optional[str] = None # player_id who guessed target in turn 1 of round
         self.past_games_history: List[dict] = [] # List of completed past games
+        self.host_id: Optional[str] = None
         
         if is_bot_game:
             if game_type == "words":
@@ -31,9 +32,34 @@ class Room:
         else:
             self.bot_agent = None
 
-    def add_player(self, player_id: str, name: str, websocket: WebSocket) -> bool:
+    def add_player(self, player_id: str, name: str, websocket: WebSocket) -> tuple[bool, str]:
+        # 1. Reconnection check: if player with same name already exists in room
+        existing_pid = None
+        for pid, pinfo in self.players.items():
+            if pinfo["name"] == name:
+                existing_pid = pid
+                break
+        
+        if existing_pid:
+            self.players[existing_pid]["websocket"] = websocket
+            if self.state == "PLAYER_DISCONNECTED":
+                if hasattr(self, "previous_state") and self.previous_state:
+                    self.state = self.previous_state
+                else:
+                    all_ready = all(
+                        p_info["secret"] is not None 
+                        for p_id, p_info in self.players.items() 
+                        if p_id != "BOT_AGENT"
+                    )
+                    self.state = "PLAYING" if all_ready else "WAITING_FOR_SECRETS"
+            return True, existing_pid
+
+        # 2. New player join check:
         if len(self.players) >= 2 and not self.is_bot_game:
-            return False
+            return False, ""
+        
+        if not self.host_id and player_id != "BOT_AGENT":
+            self.host_id = player_id
         
         self.players[player_id] = {
             "name": name,
@@ -43,8 +69,9 @@ class Room:
         self.player_order.append(player_id)
 
         try:
+            import threading
             from database import save_player
-            save_player(name)
+            threading.Thread(target=save_player, args=(name,), daemon=True).start()
         except Exception:
             pass
 
@@ -61,15 +88,20 @@ class Room:
         elif len(self.players) == 2:
             self.state = "WAITING_FOR_SECRETS"
 
-        return True
+        return True, player_id
 
     def remove_player(self, player_id: str):
         if player_id in self.players:
-            del self.players[player_id]
-            if player_id in self.player_order:
-                self.player_order.remove(player_id)
-            if self.state != "FINISHED":
-                self.state = "PLAYER_DISCONNECTED"
+            if self.state == "WAITING_FOR_PLAYERS":
+                del self.players[player_id]
+                if player_id in self.player_order:
+                    self.player_order.remove(player_id)
+            else:
+                self.players[player_id]["websocket"] = None
+                if self.state != "FINISHED":
+                    if self.state != "PLAYER_DISCONNECTED":
+                        self.previous_state = self.state
+                    self.state = "PLAYER_DISCONNECTED"
 
     def set_secret(self, player_id: str, secret: str) -> bool:
         secret = secret.strip().upper() if self.game_type == "words" else secret.strip()
@@ -174,8 +206,9 @@ class Room:
             )
             total_rounds = (len(self.guesses_history) + 1) // 2
             try:
+                import threading
                 from database import save_match
-                save_match(self.room_id, winner_name, total_rounds, self.game_type)
+                threading.Thread(target=save_match, args=(self.room_id, winner_name, total_rounds, self.game_type), daemon=True).start()
             except Exception as e:
                 print("Error saving match to database:", e)
 
@@ -295,7 +328,9 @@ class RoomManager:
                 })
         return waiting
 
-    def cleanup_room(self, room_id: str):
-        if room_id in self.rooms and len(self.rooms[room_id].players) == 0:
-            del self.rooms[room_id]
+    def cleanup_room(self, room_id: str, force: bool = False):
+        if room_id in self.rooms:
+            room = self.rooms[room_id]
+            if force or len(room.players) == 0 or (room.host_id and room.host_id not in room.players):
+                del self.rooms[room_id]
 

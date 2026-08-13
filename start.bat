@@ -1,16 +1,19 @@
 @echo off
 echo ========================================================
-echo   Pornire Joc 4-Digit Number Guessing (Backend + Frontend)
+echo   Pornire Rapidă Joc (Backend + Frontend)
 echo ========================================================
 
-echo 1. Instalare dependente backend si pornire FastAPI...
-start cmd /k "cd backend && pip install -r requirements.txt && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+:: Setare URL PostgreSQL
+set DATABASE_URL=postgresql://cifre_db_user:sBlu165teR2wKbhc1RRwS36K9jJXuGUr@dpg-d9urqvdbedkc73aul88g-a.frankfurt-postgres.render.com/cifre_db
 
-echo 2. Instalare dependente frontend si pornire Angular...
-start cmd /k "cd frontend && npm install && npm start"
+echo 1. Pornire Backend FastAPI (Instant)...
+start cmd /k "cd backend && set DATABASE_URL=postgresql://cifre_db_user:sBlu165teR2wKbhc1RRwS36K9jJXuGUr@dpg-d9urqvdbedkc73aul88g-a.frankfurt-postgres.render.com/cifre_db && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+
+echo 2. Pornire Frontend Angular (Instant)...
+start cmd /k "cd frontend && npm start"
 
 echo.
-echo Server Backend: http://localhost:8000
+echo Backend Python: http://localhost:8000
 echo Frontend Angular: http://localhost:4300
 echo.
 pause

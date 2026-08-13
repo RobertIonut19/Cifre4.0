@@ -122,10 +122,13 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, player_name: st
         return
 
     player_id = secrets.token_hex(4)
-    if not room.add_player(player_id, player_name, websocket):
+    success, actual_pid = room.add_player(player_id, player_name, websocket)
+    if not success:
         await websocket.send_text(json.dumps({"type": "ERROR", "message": "Camera este plină!"}))
         await websocket.close()
         return
+
+    player_id = actual_pid
 
     await websocket.send_text(json.dumps({
         "type": "CONNECTED",
@@ -214,6 +217,19 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, player_name: st
                     await broadcast_chat_message(room, chat_entry)
 
     except WebSocketDisconnect:
+        is_waiting = (room.state == "WAITING_FOR_PLAYERS")
         room.remove_player(player_id)
-        await broadcast_room_state(room)
-        room_manager.cleanup_room(room_id)
+
+        if is_waiting:
+            # 2nd player has NOT joined yet. Creator/host left -> DELETE ROOM IMMEDIATELY!
+            room_manager.cleanup_room(room_id, force=True)
+        else:
+            # Game is in progress (2 players joined or bot game)!
+            active_humans = [
+                pid for pid, pinfo in room.players.items()
+                if pid != "BOT_AGENT" and pinfo.get("websocket") is not None
+            ]
+            if len(active_humans) == 0 and room.is_bot_game:
+                room_manager.cleanup_room(room_id, force=True)
+            else:
+                await broadcast_room_state(room)

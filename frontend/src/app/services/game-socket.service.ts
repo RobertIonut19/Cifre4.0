@@ -55,7 +55,7 @@ export class GameSocketService {
 
   private get backendHost(): string {
     const hostname = window.location.hostname || 'localhost';
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    if (hostname !== 'cifre4-0.onrender.com' && !hostname.endsWith('render.com')) {
       return `${hostname}:8000`;
     }
     if ((window as any).BACKEND_URL) {
@@ -75,34 +75,50 @@ export class GameSocketService {
   }
 
   async getWaitingRooms(gameType?: string): Promise<{ room_id: string; host_name: string; game_type?: string }[]> {
-    const isHttps = window.location.protocol === 'https:';
-    const httpProtocol = isHttps ? 'https:' : 'http:';
-    const query = gameType ? `?game_type=${encodeURIComponent(gameType)}` : '';
-    const url = `${httpProtocol}//${this.backendHost}/api/rooms/waiting${query}`;
-    return await firstValueFrom(this.http.get<{ room_id: string; host_name: string; game_type?: string }[]>(url));
+    try {
+      const isHttps = window.location.protocol === 'https:';
+      const httpProtocol = isHttps ? 'https:' : 'http:';
+      const query = gameType ? `?game_type=${encodeURIComponent(gameType)}` : '';
+      const url = `${httpProtocol}//${this.backendHost}/api/rooms/waiting${query}`;
+      return await firstValueFrom(this.http.get<{ room_id: string; host_name: string; game_type?: string }[]>(url));
+    } catch (e) {
+      return [];
+    }
   }
 
   async getAllPlayers(): Promise<string[]> {
-    const isHttps = window.location.protocol === 'https:';
-    const httpProtocol = isHttps ? 'https:' : 'http:';
-    const url = `${httpProtocol}//${this.backendHost}/api/players`;
-    return await firstValueFrom(this.http.get<string[]>(url));
+    try {
+      const isHttps = window.location.protocol === 'https:';
+      const httpProtocol = isHttps ? 'https:' : 'http:';
+      const url = `${httpProtocol}//${this.backendHost}/api/players`;
+      return await firstValueFrom(this.http.get<string[]>(url));
+    } catch (e) {
+      return ['Alina ❤️', 'Robabe 🤍'];
+    }
   }
 
   async savePlayer(name: string): Promise<string[]> {
-    const isHttps = window.location.protocol === 'https:';
-    const httpProtocol = isHttps ? 'https:' : 'http:';
-    const url = `${httpProtocol}//${this.backendHost}/api/players`;
-    const res = await firstValueFrom(this.http.post<{ success: boolean; players: string[] }>(url, { name }));
-    return res.players;
+    try {
+      const isHttps = window.location.protocol === 'https:';
+      const httpProtocol = isHttps ? 'https:' : 'http:';
+      const url = `${httpProtocol}//${this.backendHost}/api/players`;
+      const res = await firstValueFrom(this.http.post<{ success: boolean; players: string[] }>(url, { name }));
+      return res.players;
+    } catch (e) {
+      return ['Alina ❤️', 'Robabe 🤍'];
+    }
   }
 
   async getGlobalStats(gameType?: string): Promise<{ [winner_name: string]: number }> {
-    const isHttps = window.location.protocol === 'https:';
-    const httpProtocol = isHttps ? 'https:' : 'http:';
-    const query = gameType ? `?game_type=${encodeURIComponent(gameType)}` : '';
-    const url = `${httpProtocol}//${this.backendHost}/api/stats${query}`;
-    return await firstValueFrom(this.http.get<{ [winner_name: string]: number }>(url));
+    try {
+      const isHttps = window.location.protocol === 'https:';
+      const httpProtocol = isHttps ? 'https:' : 'http:';
+      const query = gameType ? `?game_type=${encodeURIComponent(gameType)}` : '';
+      const url = `${httpProtocol}//${this.backendHost}/api/stats${query}`;
+      return await firstValueFrom(this.http.get<{ [winner_name: string]: number }>(url));
+    } catch (e) {
+      return {};
+    }
   }
 
   async validateWordDex(word: string): Promise<{ valid: boolean; message: string }> {

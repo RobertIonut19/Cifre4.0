@@ -42,7 +42,7 @@ export interface ScoreboardData {
       <!-- Top Navigation & Room Info Header -->
       <header class="glass-panel top-bar">
         <div class="brand">
-          <i class="fa-solid" [class.fa-calculator]="state.game_type !== 'words'" [class.fa-font]="state.game_type === 'words'" class="text-amber"></i>
+          <i class="fa-solid text-amber" [class.fa-calculator]="state.game_type !== 'words'" [class.fa-font]="state.game_type === 'words'"></i>
           {{ state.game_type === 'words' ? 'CUVINTE 5' : 'CIFRE 4' }}
         </div>
 
@@ -94,7 +94,7 @@ export interface ScoreboardData {
           <!-- STATE 2: WAITING FOR SECRETS -->
           <div *ngIf="state.state === 'WAITING_FOR_SECRETS'" class="glass-panel state-card secret-selection-card">
             <div class="secret-card-header">
-              <i class="fa-solid" [class.fa-user-lock]="state.game_type !== 'words'" [class.fa-spell-check]="state.game_type === 'words'" class="icon-amber"></i>
+              <i class="fa-solid icon-amber" [class.fa-calculator]="state.game_type !== 'words'" [class.fa-font]="state.game_type === 'words'"></i>
               <h2>{{ state.game_type === 'words' ? 'Alege Cuvântul Tău Secret' : 'Alege Numărul Tău Secret' }}
                 <span *ngIf="state.past_games_history && state.past_games_history.length > 0" class="game-num-tag">
                   (Meciul #{{ state.past_games_history.length + 1 }})
@@ -372,19 +372,21 @@ export interface ScoreboardData {
       left: 50%;
       transform: translateX(-50%);
       z-index: 999999;
-      background: #ffffff;
+      background: rgba(15, 23, 42, 0.96);
+      backdrop-filter: blur(16px);
       border: 2px solid var(--accent-amber);
       border-radius: var(--radius-md);
       padding: 12px 18px;
       max-width: 520px;
       width: 90%;
-      box-shadow: 0 12px 32px rgba(60, 45, 35, 0.25);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
       text-align: left;
+      color: #ffffff;
     }
 
     .dex-tt-header {
       font-size: 0.9rem;
-      color: var(--text-main);
+      color: #ffffff;
       margin-bottom: 4px;
       display: flex;
       align-items: center;
@@ -393,7 +395,7 @@ export interface ScoreboardData {
 
     .dex-tt-body {
       font-size: 0.85rem;
-      color: #374151;
+      color: #cbd5e1;
       line-height: 1.4;
     }
 
@@ -404,7 +406,7 @@ export interface ScoreboardData {
       position: relative;
     }
 
-    /* FLOATING CORNER DOG ANNOUNCEMENT TOAST (FIXED TO BROWSER VIEWPORT CORNER) */
+    /* FLOATING CORNER DOG ANNOUNCEMENT TOAST */
     .dog-corner-toast {
       position: fixed;
       bottom: 16px;
@@ -423,14 +425,16 @@ export interface ScoreboardData {
     }
 
     .speech-bubble-corner {
-      background: #ffffff;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(16px);
       border: 3px solid var(--accent-amber);
       border-radius: 18px;
       padding: 14px 22px;
-      box-shadow: 0 12px 35px rgba(60, 45, 35, 0.25);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
       margin-bottom: 8px;
       position: relative;
       max-width: 320px;
+      color: #ffffff;
     }
 
     .speech-bubble-corner::after {
@@ -455,7 +459,7 @@ export interface ScoreboardData {
     .bubble-text {
       font-size: 1.05rem;
       font-weight: 700;
-      color: var(--text-main);
+      color: #ffffff;
     }
 
     .dog-mascot-corner {
@@ -471,7 +475,7 @@ export interface ScoreboardData {
     .dog-emoji {
       font-size: 5.5rem;
       line-height: 1;
-      filter: drop-shadow(0 6px 16px rgba(0,0,0,0.25));
+      filter: drop-shadow(0 6px 16px rgba(0,0,0,0.4));
     }
 
     .top-bar {
@@ -480,18 +484,22 @@ export interface ScoreboardData {
       align-items: center;
       padding: 12px 20px;
       margin-bottom: 16px;
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius-lg);
     }
 
     .brand {
       font-size: 1.3rem;
       font-weight: 800;
       letter-spacing: 1px;
-      color: var(--text-main);
+      color: #ffffff;
     }
 
     /* HEADER SCOREBOARD BADGE */
     .header-scoreboard {
-      background: #fff8ef;
+      background: rgba(245, 158, 11, 0.15);
       border: 1px solid var(--accent-amber);
       border-radius: 20px;
       padding: 4px 14px;
@@ -500,27 +508,29 @@ export interface ScoreboardData {
       display: flex;
       align-items: center;
       gap: 8px;
+      color: #ffffff;
     }
 
-    .alina-sc { color: #be185d; }
-    .robabe-sc { color: #475569; }
-    .sc-divider { color: var(--text-muted); }
-    .sc-ties { color: #854d0e; font-size: 0.8rem; }
+    .alina-sc { color: #f472b6; }
+    .robabe-sc { color: #cbd5e1; }
+    .sc-divider { color: #94a3b8; }
+    .sc-ties { color: #fef08a; font-size: 0.8rem; }
 
     .top-secret-bar {
       display: flex;
       align-items: center;
       gap: 10px;
-      background: #fbf9f5;
-      border: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
       padding: 6px 14px;
       border-radius: 20px;
       font-size: 0.9rem;
+      color: #ffffff;
     }
 
     .secret-title {
       font-weight: 600;
-      color: var(--text-muted);
+      color: #cbd5e1;
     }
 
     .secret-val-box {
@@ -540,7 +550,7 @@ export interface ScoreboardData {
     .btn-toggle-eye {
       background: none;
       border: none;
-      color: var(--text-muted);
+      color: #cbd5e1;
       cursor: pointer;
       font-size: 1rem;
     }
@@ -554,12 +564,12 @@ export interface ScoreboardData {
     }
 
     .room-code-badge {
-      background: #f1ece6;
+      background: rgba(255, 255, 255, 0.1);
       border: 1px dashed var(--accent-amber);
       padding: 6px 14px;
       border-radius: 20px;
       font-size: 0.9rem;
-      color: var(--text-main);
+      color: #ffffff;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
@@ -567,7 +577,7 @@ export interface ScoreboardData {
     }
 
     .room-code-badge:hover {
-      background: #e6dfd4;
+      background: rgba(255, 255, 255, 0.2);
     }
 
     .copy-icon {
@@ -613,10 +623,12 @@ export interface ScoreboardData {
     }
 
     .secret-selection-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
+      background: rgba(15, 23, 42, 0.78);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.16);
       border-radius: var(--radius-lg);
       box-shadow: var(--shadow-warm);
+      color: #ffffff;
     }
 
     .secret-card-header {
@@ -639,10 +651,11 @@ export interface ScoreboardData {
       max-width: 440px;
       margin: 0 auto;
       text-align: left;
-      background: #fbf9f5;
-      border: 1px solid var(--border-subtle);
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
       padding: 20px;
       border-radius: var(--radius-md);
+      color: #ffffff;
     }
 
     .form-label {
@@ -650,7 +663,7 @@ export interface ScoreboardData {
       font-weight: 700;
       font-size: 0.95rem;
       margin-bottom: 10px;
-      color: var(--text-main);
+      color: #ffffff;
     }
 
     .secret-input-row {
@@ -670,8 +683,9 @@ export interface ScoreboardData {
       text-align: center;
       font-weight: 800;
       padding: 10px 40px 10px 16px;
-      background: #ffffff;
-      color: var(--accent-amber);
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fef08a;
       text-transform: uppercase;
     }
 
@@ -682,7 +696,7 @@ export interface ScoreboardData {
       transform: translateY(-50%);
       background: none;
       border: none;
-      color: var(--text-muted);
+      color: #94a3b8;
       cursor: pointer;
       font-size: 1.1rem;
     }
@@ -702,6 +716,7 @@ export interface ScoreboardData {
       padding: 20px;
       border-radius: var(--radius-md);
       text-align: left;
+      color: #ffffff;
     }
 
     .icon-ready {
@@ -730,30 +745,34 @@ export interface ScoreboardData {
     /* ULTRA MINIMAL GUESS CONSOLE CARD */
     .guess-console-card {
       padding: 14px 16px;
-      border: 2px solid var(--border-color);
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: var(--radius-lg);
       display: flex;
       flex-direction: column;
       justify-content: center;
       gap: 8px;
+      color: #ffffff;
     }
 
     .guess-console-card.turn-mine-card {
       border-color: var(--accent-amber);
-      background: #fffdf9;
-      box-shadow: 0 6px 20px rgba(217, 119, 6, 0.15);
+      background: rgba(245, 158, 11, 0.15);
+      box-shadow: 0 6px 20px rgba(245, 158, 11, 0.25);
     }
 
     .turn-orange-title {
       font-size: 1.05rem;
       font-weight: 800;
-      color: var(--accent-amber) !important;
+      color: #fef08a !important;
       margin-bottom: 2px;
     }
 
     .round-indicator {
       font-size: 0.85rem;
       font-weight: 700;
-      color: var(--text-muted);
+      color: #cbd5e1;
     }
 
     .guess-input-wrapper {
@@ -767,7 +786,9 @@ export interface ScoreboardData {
       font-weight: 800;
       letter-spacing: 6px;
       text-align: center;
-      background: #ffffff;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fef08a;
       padding: 8px;
       text-transform: uppercase;
     }
@@ -786,8 +807,13 @@ export interface ScoreboardData {
     /* DUAL GUESSES CARD WITH COMPACT ALIGNED NUMBERS */
     .dual-guesses-card {
       padding: 14px 16px;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: var(--radius-lg);
       display: flex;
       flex-direction: column;
+      color: #ffffff;
     }
 
     .dual-guesses-header {
@@ -796,18 +822,19 @@ export interface ScoreboardData {
       gap: 8px;
       margin-bottom: 6px;
       padding-bottom: 4px;
-      border-bottom: 1px solid var(--border-subtle);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
     }
 
     .col-head {
       font-size: 0.85rem;
       font-weight: 800;
+      color: #ffffff;
     }
 
     .no-my-guesses {
       margin: auto;
       text-align: center;
-      color: var(--text-muted);
+      color: #cbd5e1;
       font-size: 0.85rem;
       font-style: italic;
       padding: 16px 10px;
@@ -827,7 +854,7 @@ export interface ScoreboardData {
       grid-template-columns: 1fr 1fr;
       gap: 8px;
       padding: 2px 0;
-      border-bottom: 1px solid var(--border-subtle);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .dual-col {
@@ -843,14 +870,14 @@ export interface ScoreboardData {
     }
 
     .col-opponent {
-      opacity: 0.65;
-      background: rgba(0, 0, 0, 0.02);
+      opacity: 0.75;
+      background: rgba(255, 255, 255, 0.03);
     }
 
     .rg-num {
       font-size: 0.75rem;
       font-weight: 700;
-      color: var(--text-muted);
+      color: #cbd5e1;
       width: 20px;
     }
 
@@ -859,16 +886,16 @@ export interface ScoreboardData {
       font-size: 0.95rem;
       font-weight: 800;
       letter-spacing: 2px;
-      color: var(--text-main);
+      color: #ffffff;
       flex: 1;
     }
 
     .opp-num {
-      color: #64748b;
+      color: #cbd5e1;
     }
 
     .pending-text {
-      color: var(--text-muted);
+      color: #94a3b8;
       font-size: 0.85rem;
     }
 
@@ -884,7 +911,7 @@ export interface ScoreboardData {
       color: #ffffff;
     }
 
-    .score-color-0 { background: #94a3b8; }
+    .score-color-0 { background: #64748b; }
     .score-color-1 { background: #f59e0b; }
     .score-color-2 { background: #3b82f6; }
     .score-color-3 { background: #8b5cf6; }
@@ -897,17 +924,19 @@ export interface ScoreboardData {
 
     /* WINNER CARD */
     .winner-card {
-      background: var(--bg-card);
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(16px);
       border: 2px solid var(--color-green);
       border-radius: var(--radius-lg);
       padding: 30px;
       text-align: center;
-      box-shadow: 0 10px 30px rgba(16, 185, 129, 0.15);
+      color: #ffffff;
+      box-shadow: 0 10px 35px rgba(16, 185, 129, 0.25);
     }
 
     .winner-card.tie-card {
       border-color: var(--accent-amber);
-      box-shadow: 0 10px 30px rgba(217, 119, 6, 0.15);
+      box-shadow: 0 10px 35px rgba(245, 158, 11, 0.25);
     }
 
     .winner-trophy {
@@ -917,7 +946,7 @@ export interface ScoreboardData {
     }
 
     .winner-subtitle {
-      color: var(--text-muted);
+      color: #cbd5e1;
       margin-bottom: 20px;
     }
 
@@ -925,10 +954,11 @@ export interface ScoreboardData {
       display: flex;
       justify-content: center;
       gap: 20px;
-      background: #fbf9f5;
+      background: rgba(255, 255, 255, 0.08);
       padding: 12px 20px;
       border-radius: var(--radius-md);
       margin-bottom: 20px;
+      color: #ffffff;
     }
 
     .secret-item {
@@ -949,6 +979,11 @@ export interface ScoreboardData {
     /* SCOREBOARD CARD */
     .scoreboard-card {
       padding: 16px;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: var(--radius-lg);
+      color: #ffffff;
     }
 
     .sc-card-header {
@@ -961,13 +996,13 @@ export interface ScoreboardData {
     .sc-card-header h4 {
       font-size: 0.95rem;
       font-weight: 800;
-      color: var(--text-main);
+      color: #ffffff;
     }
 
     .btn-reset-sc {
       background: none;
       border: none;
-      color: var(--text-muted);
+      color: #cbd5e1;
       cursor: pointer;
       font-size: 0.85rem;
     }
@@ -984,9 +1019,10 @@ export interface ScoreboardData {
       align-items: center;
       padding: 6px 10px;
       border-radius: 6px;
-      background: #fdfbf7;
-      border: 1px solid var(--border-subtle);
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       font-size: 0.85rem;
+      color: #ffffff;
     }
 
     .sc-name {

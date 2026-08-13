@@ -14,159 +14,211 @@ export interface WaitingRoomInfo {
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="lobby-outer-wrapper animate-fade-in">
-      <div class="lobby-layout">
+    <div class="friv-hub-outer animate-pop-in">
+      <div class="friv-hub-card glass-panel">
         
-        <!-- MAIN CENTER/LEFT CARD -->
-        <div class="glass-panel main-lobby-card">
-          <div class="top-row-header">
-            <div class="lobby-badge">
-              <i class="fa-solid fa-heart text-amber"></i> Best Couple 🖤
+        <!-- FRIV HUB HERO HEADER -->
+        <div class="friv-hero-header">
+          <div class="player-selector-bar">
+            <span class="p-label"><i class="fa-solid fa-users text-amber"></i> Alege jucătorul:</span>
+            
+            <div class="player-pills">
+              <button 
+                *ngFor="let pName of registeredPlayers" 
+                class="player-pill" 
+                [class.active]="selectedPresetName === pName" 
+                (click)="selectPlayer(pName)">
+                <span class="p-icon">{{ pName.includes('Alina') ? '👩🏻‍🦱' : '🧑🏽' }}</span>
+                <span>{{ pName }}</span>
+              </button>
             </div>
+          </div>
 
-            <!-- SEPARATE BOT MODE BUTTON -->
-            <button class="btn-bot-launcher" (click)="openBotModal()">
-              <i class="fa-solid fa-robot"></i> Antrenează-te cu Bot-ul 🤖
+          <!-- QUICK ACTION BAR: ENTER CODE OR BOT MATCH -->
+          <div class="quick-action-bar">
+            <button class="action-btn btn-code" (click)="openCodeModal()">
+              <i class="fa-solid fa-key"></i> Introdu codul camerei
             </button>
-          </div>
 
-          <h1 class="lobby-title">Joacă împotriva iubitei/iubitului inimii tale 💖</h1>
-
-          <!-- Player Name Selection -->
-          <div class="form-group">
-            <label for="nameSelect"><i class="fa-solid fa-user text-amber"></i> Numele tău de jucător:</label>
-            
-            <select 
-              id="nameSelect" 
-              class="form-input name-select" 
-              [(ngModel)]="selectedPresetName"
-              (change)="onPresetChange()">
-              <option *ngFor="let pName of registeredPlayers" [value]="pName">
-                {{ pName }}
-              </option>
-              <option value="CUSTOM">➕ Adaugă jucător nou...</option>
-            </select>
-
-            <!-- Custom Name Input -->
-            <div *ngIf="selectedPresetName === 'CUSTOM'" class="custom-name-box animate-fade-in">
-              <input 
-                type="text" 
-                class="form-input" 
-                placeholder="Scrie numele noului jucător..." 
-                [(ngModel)]="customPlayerName" 
-                maxlength="18">
-            </div>
-          </div>
-
-          <!-- LIST OF PUBLIC WAITING ROOMS (1-CLICK JOIN) -->
-          <div *ngIf="waitingRooms.length > 0" class="waiting-section animate-fade-in">
-            <div class="section-badge">
-              <i class="fa-solid fa-door-open text-amber"></i> Camere deschise în așteptare:
-            </div>
-
-            <div class="waiting-rooms-list">
-              <div *ngFor="let room of waitingRooms" class="waiting-room-card">
-                <div class="room-host-info">
-                  <i class="fa-solid" [class.fa-calculator]="room.game_type !== 'words'" [class.fa-font]="room.game_type === 'words'" class="text-amber"></i> 
-                  <span>{{ room.game_type === 'words' ? 'Cuvinte 5' : 'Cifre 4' }} - cu <strong>{{ room.host_name }}</strong></span>
-                </div>
-                <button 
-                  class="btn btn-primary btn-join-direct" 
-                  (click)="joinDirectRoom(room.room_id)"
-                  [disabled]="!finalPlayerName.trim() || isLoading">
-                  <i class="fa-solid fa-right-to-bracket"></i> Intră
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div class="divider"><span>Alege Jocul 1v1</span></div>
-
-          <!-- GAME SELECTION CARDS (FOR 1v1 PvP LOVE MATCH) -->
-          <div class="game-cards-grid">
-            
-            <!-- CARD 1: CIFRE 4 (YELLOW-ISH PASTEL) -->
-            <div class="game-card card-cifre" (click)="createPvpRoom('numbers')">
-              <div class="game-card-icon">
-                <i class="fa-solid fa-calculator"></i>
-              </div>
-              <h3>Cifre 4</h3>
-              <p class="game-card-desc">Ghicește numărul secret din 4 cifre ales de jumătatea ta!</p>
-              
-              <button 
-                class="btn btn-neutral btn-block-love" 
-                (click)="$event.stopPropagation(); createPvpRoom('numbers')"
-                [disabled]="!finalPlayerName.trim() || isLoading">
-                <i class="fa-solid fa-heart"></i> Joacă 1v1 cu Iubirea Ta
-              </button>
-            </div>
-
-            <!-- CARD 2: CUVINTE 5 (PURPLE-ISH PASTEL) -->
-            <div class="game-card card-cuvinte" (click)="createPvpRoom('words')">
-              <div class="game-card-icon">
-                <i class="fa-solid fa-font"></i>
-              </div>
-              <h3>Cuvinte 5</h3>
-              <p class="game-card-desc">Ghicește cuvântul secret din 5 litere ales de jumătatea ta!</p>
-              
-              <button 
-                class="btn btn-neutral btn-block-love" 
-                (click)="$event.stopPropagation(); createPvpRoom('words')"
-                [disabled]="!finalPlayerName.trim() || isLoading">
-                <i class="fa-solid fa-heart"></i> Joacă 1v1 cu Iubirea Ta
-              </button>
-            </div>
-
-          </div>
-
-          <div *ngIf="gameSocket.errorMessage()" class="error-banner animate-fade-in">
-            <i class="fa-solid fa-triangle-exclamation"></i> {{ gameSocket.errorMessage() }}
+            <button class="action-btn btn-bot" (click)="openBotModal()">
+              <i class="fa-solid fa-robot"></i> Antrenament vs Bot AI
+            </button>
           </div>
         </div>
 
-        <!-- RIGHT SIDEBAR: CLASAMENT VICTORII -->
-        <aside class="glass-panel leaderboard-sidebar animate-fade-in">
-          <div class="sidebar-header">
-            <i class="fa-solid fa-trophy trophy-icon"></i>
-            <h2>Clasament Victorii</h2>
+        <!-- PUBLIC WAITING ROOMS (1-CLICK JOIN) -->
+        <div *ngIf="waitingRooms.length > 0" class="friv-waiting-rooms animate-fade-in">
+          <div class="waiting-title">
+            <i class="fa-solid fa-door-open text-amber"></i> Camere live deschise (1-Click Join):
           </div>
 
-          <!-- Category Filter Tabs -->
-          <div class="leaderboard-tabs">
-            <button class="lb-tab" [class.active]="activeStatsTab === 'ALL'" (click)="setStatsTab('ALL')">General</button>
-            <button class="lb-tab" [class.active]="activeStatsTab === 'numbers'" (click)="setStatsTab('numbers')">Cifre 4</button>
-            <button class="lb-tab" [class.active]="activeStatsTab === 'words'" (click)="setStatsTab('words')">Cuvinte 5</button>
+          <div class="waiting-grid">
+            <div *ngFor="let room of waitingRooms" class="waiting-card">
+              <div class="room-info">
+                <i class="fa-solid text-amber" [class.fa-calculator]="room.game_type !== 'words'" [class.fa-font]="room.game_type === 'words'"></i>
+                <span>{{ room.game_type === 'words' ? 'Cuvinte 5' : 'Cifre 4' }} cu <strong>{{ room.host_name }}</strong></span>
+              </div>
+              <button 
+                class="btn-join-fast" 
+                (click)="joinDirectRoom(room.room_id)"
+                [disabled]="!finalPlayerName.trim() || isLoading">
+                <i class="fa-solid fa-play"></i> Intră Acum
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- FRIV GAME TILES GRID (COLORFUL & INTERACTIVE) -->
+        <div class="friv-tiles-header">
+          <h2>🎮 Alege Jocul 1v1</h2>
+        </div>
+
+        <div class="friv-games-grid">
+
+          <!-- GAME TILE 1: CIFRE 4 (AMBER / GOLDEN ARCADE) -->
+          <div class="friv-tile tile-cifre">
+            <div class="tile-badge">
+              <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star-half-stroke"></i>
+            </div>
+            <div class="tile-icon-wrapper">
+              <i class="fa-solid fa-calculator tile-icon"></i>
+            </div>
+            <h3 class="tile-title">Cifre 4</h3>
+            <p class="tile-desc">Ghicește numărul secret din 4 cifre ales de iubirea ta!</p>
+
+            <div class="tile-actions">
+              <button 
+                class="btn-tile-play play-cifre" 
+                (click)="createPvpRoom('numbers')"
+                [disabled]="!finalPlayerName.trim() || isLoading">
+                <i class="fa-solid fa-heart"></i> Joacă cu iubirea ta
+              </button>
+            </div>
           </div>
 
-          <!-- Ranking List -->
-          <div *ngIf="hasStats()" class="leaderboard-list">
-            <div *ngFor="let item of getSortedStats(); let idx = index" class="lb-item" [class.top-1]="idx === 0">
+          <!-- GAME TILE 2: CUVINTE 5 (PURPLE / VIOLET WIZARD) -->
+          <div class="friv-tile tile-cuvinte">
+            <div class="tile-badge purple-badge">
+              <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+            </div>
+            <div class="tile-icon-wrapper">
+              <i class="fa-solid fa-font tile-icon"></i>
+            </div>
+            <h3 class="tile-title">Cuvinte 5</h3>
+            <p class="tile-desc">
+              Ghicește cuvântul secret din 5 litere ales de iubirea ta!<br>
+              Validat pe Dexonline!
+            </p>
+
+            <div class="tile-actions">
+              <button 
+                class="btn-tile-play play-cuvinte" 
+                (click)="createPvpRoom('words')"
+                [disabled]="!finalPlayerName.trim() || isLoading">
+                <i class="fa-solid fa-heart"></i> Joacă cu dragostea ta
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- LEADERBOARD SECTION (GENERAL / CIFRE / CUVINTE BELOW GAME CARDS) -->
+        <div class="friv-leaderboard-embed animate-fade-in">
+          <div class="lb-embed-header">
+            <div class="lb-embed-title">
+              <i class="fa-solid fa-trophy text-amber"></i>
+              <h3>Clasament Victorii & Statistici</h3>
+            </div>
+
+            <!-- CATEGORY FILTER TABS: General / Cifre / Cuvinte -->
+            <div class="lb-category-tabs">
+              <button 
+                class="lb-tab-btn" 
+                [class.active]="activeStatsTab === 'ALL'" 
+                (click)="setStatsTab('ALL')">
+                <i class="fa-solid fa-globe"></i> General
+              </button>
+
+              <button 
+                class="lb-tab-btn" 
+                [class.active]="activeStatsTab === 'numbers'" 
+                (click)="setStatsTab('numbers')">
+                <i class="fa-solid fa-calculator"></i> Cifre
+              </button>
+
+              <button 
+                class="lb-tab-btn" 
+                [class.active]="activeStatsTab === 'words'" 
+                (click)="setStatsTab('words')">
+                <i class="fa-solid fa-font"></i> Cuvinte
+              </button>
+            </div>
+          </div>
+
+          <!-- RANKING LIST -->
+          <div *ngIf="hasStats()" class="lb-ranking-list">
+            <div *ngFor="let item of getSortedStats(); let idx = index" class="lb-row" [class.gold-row]="idx === 0">
               <div class="lb-rank">
-                <span *ngIf="idx === 0">🥇</span>
-                <span *ngIf="idx === 1">🥈</span>
-                <span *ngIf="idx === 2">🥉</span>
+                <span *ngIf="idx === 0">🥇 #1</span>
+                <span *ngIf="idx === 1">🥈 #2</span>
+                <span *ngIf="idx === 2">🥉 #3</span>
                 <span *ngIf="idx > 2" class="rank-num">#{{ idx + 1 }}</span>
               </div>
               <div class="lb-player">
+                <span class="p-icon">{{ item.name.includes('Alina') ? '👩🏻‍🦱' : (item.name.includes('Robabe') ? '🧑🏽' : '👤') }}</span>
                 <span class="p-name">{{ item.name }}</span>
               </div>
-              <div class="lb-score">
+              <div class="lb-wins">
                 <strong>{{ item.wins }}</strong>
-                <span class="score-label">{{ item.wins === 1 ? 'victorie' : 'victorii' }}</span>
+                <span>{{ item.wins === 1 ? 'victorie' : 'victorii' }}</span>
               </div>
             </div>
           </div>
 
-          <div *ngIf="!hasStats()" class="no-stats-placeholder">
+          <div *ngIf="!hasStats()" class="lb-empty">
             <i class="fa-solid fa-medal icon-empty"></i>
             <p>Nicio victorie înregistrată încă în această categorie.</p>
           </div>
-        </aside>
+        </div>
+
+        <div *ngIf="gameSocket.errorMessage()" class="error-banner animate-fade-in">
+          <i class="fa-solid fa-triangle-exclamation"></i> {{ gameSocket.errorMessage() }}
+        </div>
 
       </div>
     </div>
 
-    <!-- MODAL POPUP FOR SELECTING BOT GAME -->
+    <!-- MODAL 1: ROOM CODE JOIN POPUP -->
+    <div *ngIf="showCodeModal" class="modal-backdrop animate-fade-in" (click)="closeCodeModal()">
+      <div class="modal-card animate-pop-in" (click)="$event.stopPropagation()">
+        <button class="modal-close-btn" (click)="closeCodeModal()">&times;</button>
+
+        <div class="modal-header">
+          <div class="bot-modal-icon">🔑</div>
+          <h2>Intră cu Cod de Cameră</h2>
+          <p>Introdu codul privat din 6 caractere oferit de prietenul tău:</p>
+        </div>
+
+        <div class="code-modal-form">
+          <input 
+            type="text" 
+            class="form-input code-modal-input" 
+            placeholder="EX: A1B2C3" 
+            [(ngModel)]="manualRoomCode"
+            maxlength="6"
+            style="text-transform: uppercase;">
+
+          <button 
+            class="btn btn-primary btn-submit-code" 
+            (click)="joinByCode()"
+            [disabled]="!finalPlayerName.trim() || !manualRoomCode.trim() || isLoading">
+            <i class="fa-solid fa-right-to-bracket"></i> Intră în Cameră
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 2: BOT SELECTOR POPUP -->
     <div *ngIf="showBotModal" class="modal-backdrop animate-fade-in" (click)="closeBotModal()">
       <div class="modal-card animate-pop-in" (click)="$event.stopPropagation()">
         <button class="modal-close-btn" (click)="closeBotModal()">&times;</button>
@@ -196,423 +248,360 @@ export interface WaitingRoomInfo {
             <i class="fa-solid fa-chevron-right arrow-icon"></i>
           </div>
         </div>
-
       </div>
     </div>
   `,
   styles: [`
-    .lobby-outer-wrapper {
+    .friv-hub-outer {
       display: flex;
       justify-content: center;
-      align-items: flex-start;
-      min-height: 90vh;
-      padding: 30px 20px;
+      padding: 48px 20px 30px 20px;
+      min-height: 88vh;
     }
 
-    .lobby-layout {
-      display: grid;
-      grid-template-columns: 1fr 340px;
-      gap: 24px;
+    .friv-hub-card {
       width: 100%;
-      max-width: 980px;
-    }
-
-    /* CENTER/LEFT MAIN CARD */
-    .main-lobby-card {
+      max-width: 920px;
       padding: 32px 28px;
-      text-align: center;
-      background: var(--bg-card);
-      border-color: var(--border-color);
+      background: rgba(15, 23, 42, 0.78);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: var(--radius-lg);
+      color: #ffffff;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.4);
     }
 
-    .top-row-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 14px;
-    }
-
-    .lobby-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.82rem;
-      font-weight: 700;
-      color: #78350f;
-      background: #fef3c7;
-      border: 1px solid #fde68a;
-      padding: 4px 14px;
-      border-radius: 20px;
-    }
-
-    .btn-bot-launcher {
-      background: #f3f4f6;
-      border: 1px solid #d1d5db;
-      color: #374151;
-      font-size: 0.85rem;
-      font-weight: 700;
-      padding: 6px 14px;
-      border-radius: 20px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .btn-bot-launcher:hover {
-      background: #e5e7eb;
-      color: #111827;
-      transform: scale(1.02);
-    }
-
-    .lobby-title {
-      font-size: 1.85rem;
-      font-weight: 800;
-      letter-spacing: 0.5px;
-      color: var(--text-main);
+    /* PLAYER SELECTOR BAR */
+    .friv-hero-header {
       margin-bottom: 24px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
 
-    .form-group {
-      text-align: left;
-      margin-bottom: 20px;
+    .player-selector-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: flex-start;
+      margin-bottom: 16px;
     }
 
-    .form-group label {
-      display: block;
+    .p-label {
       font-size: 0.9rem;
-      font-weight: 600;
-      margin-bottom: 8px;
-      color: var(--text-main);
+      font-weight: 800;
+      color: #f8fafc;
     }
 
-    .name-select {
+    .player-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .player-pill {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 8px 18px;
+      border-radius: 20px;
+      font-size: 0.95rem;
       font-weight: 700;
-      font-size: 1.05rem;
+      color: #f8fafc;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .player-pill:hover {
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    .player-pill.active {
+      background: rgba(245, 158, 11, 0.25);
+      border-color: #f59e0b;
+      color: #fef08a;
+      box-shadow: 0 0 15px rgba(245, 158, 11, 0.35);
     }
 
     .custom-name-box {
       margin-top: 10px;
+      width: 100%;
+      max-width: 320px;
     }
 
-    /* PUBLIC WAITING ROOMS */
-    .waiting-section {
-      margin-bottom: 20px;
-      text-align: left;
-    }
-
-    .section-badge {
-      font-size: 0.85rem;
-      font-weight: 700;
-      color: var(--text-main);
-      margin-bottom: 10px;
+    .quick-action-bar {
       display: flex;
-      align-items: center;
-      gap: 6px;
+      gap: 10px;
+      margin-top: 24px;
+      padding-top: 6px;
     }
 
-    .waiting-rooms-list {
+    .action-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #f8fafc;
+      font-size: 0.88rem;
+      font-weight: 700;
+      padding: 8px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .action-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .btn-code { color: #f59e0b; }
+    .btn-bot { color: #c084fc; }
+
+    /* WAITING ROOMS */
+    .friv-waiting-rooms {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(253, 224, 71, 0.3);
+      border-radius: var(--radius-md);
+      padding: 14px 18px;
+      margin-bottom: 24px;
+    }
+
+    .waiting-title {
+      font-size: 0.9rem;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fef08a;
+    }
+
+    .waiting-grid {
       display: flex;
       flex-direction: column;
       gap: 8px;
     }
 
-    .waiting-room-card {
+    .waiting-card {
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      gap: 10px;
-      background: #faf8f5;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      padding: 10px 14px;
+      align-items: center;
+      background: rgba(15, 23, 42, 0.7);
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #ffffff;
     }
 
-    .room-host-info {
+    .room-info {
       font-size: 0.9rem;
       font-weight: 600;
-      color: var(--text-main);
       display: flex;
       align-items: center;
       gap: 8px;
     }
 
-    .btn-join-direct {
+    .btn-join-fast {
+      background: var(--color-green);
+      color: #ffffff;
+      border: none;
       padding: 6px 14px;
       font-size: 0.85rem;
-    }
-
-    .divider {
-      display: flex;
-      align-items: center;
-      text-align: center;
-      color: var(--text-muted);
-      font-size: 0.8rem;
-      margin: 20px 0;
-    }
-    .divider::before, .divider::after {
-      content: '';
-      flex: 1;
-      border-bottom: 1px solid var(--border-color);
-    }
-    .divider span {
-      padding: 0 10px;
-    }
-
-    /* GAME SELECTION CARDS - YELLOW-ISH (CIFRE 4) & PURPLE-ISH (CUVINTE 5) */
-    .game-cards-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-
-    .game-card {
-      border-radius: var(--radius-lg);
-      padding: 24px 18px;
-      text-align: center;
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
+      font-weight: 800;
+      border-radius: 6px;
       cursor: pointer;
     }
 
-    /* CARD 1: YELLOW-ISH / WARM GOLD (CIFRE 4) */
-    .card-cifre {
-      background: #fefce8;
-      border: 2px solid #fef08a;
-      box-shadow: 0 4px 15px rgba(217, 119, 6, 0.05);
-    }
-    .card-cifre .game-card-icon { color: #d97706; }
-    .card-cifre h3 { color: #78350f; }
-    .card-cifre:hover {
-      border-color: #fde047;
-      background: #fffdf0;
-      transform: translateY(-3px);
-      box-shadow: 0 10px 25px rgba(217, 119, 6, 0.12);
-    }
-
-    /* CARD 2: PURPLE-ISH / VIOLET (CUVINTE 5) */
-    .card-cuvinte {
-      background: #f5f3ff;
-      border: 2px solid #ddd6fe;
-      box-shadow: 0 4px 15px rgba(124, 58, 237, 0.05);
-    }
-    .card-cuvinte .game-card-icon { color: #7c3aed; }
-    .card-cuvinte h3 { color: #4c1d95; }
-    .card-cuvinte:hover {
-      border-color: #a78bfa;
-      background: #faf5ff;
-      transform: translateY(-3px);
-      box-shadow: 0 10px 25px rgba(124, 58, 237, 0.12);
-    }
-
-    .game-card-icon {
-      font-size: 2.5rem;
-      margin-bottom: 8px;
-    }
-
-    .game-card h3 {
-      font-size: 1.3rem;
+    /* FRIV GAME TILES GRID */
+    .friv-tiles-header h2 {
+      font-size: 1.4rem;
       font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 16px;
+    }
+
+    .friv-games-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .friv-tile {
+      border-radius: var(--radius-lg);
+      padding: 28px 20px;
+      text-align: center;
+      position: relative;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+    }
+
+    .tile-cifre {
+      background: linear-gradient(135deg, rgba(30, 20, 10, 0.75) 0%, rgba(120, 53, 15, 0.88) 100%), 
+                  url('/assets/cifre_background.jpg') center/cover no-repeat;
+      border: 2px solid #fde047;
+      color: #ffffff;
+      position: relative;
+      overflow: hidden;
+    }
+    .tile-cifre:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 16px 36px rgba(217, 119, 6, 0.4);
+      background: linear-gradient(135deg, rgba(30, 20, 10, 0.58) 0%, rgba(180, 83, 9, 0.75) 100%), 
+                  url('/assets/cifre_background.jpg') center/cover no-repeat;
+    }
+
+    .tile-cuvinte {
+      background: linear-gradient(135deg, rgba(20, 10, 45, 0.75) 0%, rgba(88, 28, 135, 0.88) 100%), 
+                  url('/assets/keyboard_background.avif') center/cover no-repeat;
+      border: 2px solid #ddd6fe;
+      color: #ffffff;
+      position: relative;
+      overflow: hidden;
+    }
+    .tile-cuvinte:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 16px 36px rgba(124, 58, 237, 0.4);
+      background: linear-gradient(135deg, rgba(20, 10, 45, 0.58) 0%, rgba(126, 34, 206, 0.75) 100%), 
+                  url('/assets/keyboard_background.avif') center/cover no-repeat;
+    }
+
+    .tile-badge {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      background: #d97706;
+      color: #ffffff;
+      font-size: 0.75rem;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 14px;
+    }
+
+    .purple-badge {
+      background: #7c3aed;
+    }
+
+    .tile-icon-wrapper {
+      margin-bottom: 12px;
+    }
+
+    .tile-cifre .tile-icon {
+      font-size: 3.5rem;
+      color: #fef08a;
+      filter: drop-shadow(0 2px 8px rgba(0,0,0,0.6));
+    }
+
+    .tile-cuvinte .tile-icon {
+      font-size: 3.5rem;
+      color: #e9d5ff;
+      filter: drop-shadow(0 2px 8px rgba(0,0,0,0.6));
+    }
+
+    .tile-title {
+      font-size: 1.55rem;
+      font-weight: 800;
+      color: #ffffff;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.8);
       margin-bottom: 6px;
     }
 
-    .game-card-desc {
+    .tile-desc {
+      font-size: 0.88rem;
+      color: #f1f5f9;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.8);
+      margin-bottom: 12px;
+    }
+
+    .tile-rating {
       font-size: 0.85rem;
-      color: #64748b;
-      margin-bottom: 18px;
-      line-height: 1.35;
+      margin-bottom: 20px;
     }
 
-    .btn-block-love {
-      width: 100%;
-      padding: 10px;
-      font-size: 0.9rem;
-      font-weight: 700;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-    }
-
-    .card-cifre .btn-neutral {
-      background: #d97706;
-      color: #ffffff;
-      border: none;
-    }
-    .card-cifre .btn-neutral:hover {
-      background: #b45309;
-    }
-
-    .card-cuvinte .btn-neutral {
-      background: #7c3aed;
-      color: #ffffff;
-      border: none;
-    }
-    .card-cuvinte .btn-neutral:hover {
-      background: #6d28d9;
-    }
-
-    .error-banner {
-      margin-top: 16px;
-      background: var(--color-red-bg);
-      border: 1px solid var(--color-red-border);
-      color: var(--color-red);
-      padding: 10px;
-      border-radius: var(--radius-md);
-      font-size: 0.85rem;
-      font-weight: 600;
-    }
-
-    /* RIGHT SIDEBAR: CLASAMENT */
-    .leaderboard-sidebar {
-      padding: 24px 20px;
-      display: flex;
-      flex-direction: column;
-      background: #fdfcf9;
-      border-color: var(--border-color);
-    }
-
-    .sidebar-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 16px;
-    }
-
-    .trophy-icon {
-      font-size: 1.5rem;
-      color: var(--accent-amber);
-    }
-
-    .sidebar-header h2 {
-      font-size: 1.2rem;
-      font-weight: 800;
-      color: var(--text-main);
-    }
-
-    .leaderboard-tabs {
-      display: flex;
-      gap: 4px;
-      background: #eae4dc;
-      padding: 3px;
-      border-radius: 8px;
-      margin-bottom: 16px;
-    }
-
-    .lb-tab {
-      flex: 1;
-      background: transparent;
-      border: none;
-      font-size: 0.8rem;
-      font-weight: 700;
-      padding: 6px 4px;
-      border-radius: 6px;
-      cursor: pointer;
-      color: var(--text-muted);
-      transition: all 0.15s ease;
-    }
-
-    .lb-tab.active {
-      background: #ffffff;
-      color: var(--text-main);
-      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-    }
-
-    .leaderboard-list {
+    .tile-actions {
       display: flex;
       flex-direction: column;
       gap: 8px;
     }
 
-    .lb-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 12px;
-      background: #ffffff;
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-md);
-      transition: transform 0.15s ease;
-    }
-
-    .lb-item.top-1 {
-      background: #fffdf5;
-      border-color: #fde68a;
-    }
-
-    .lb-rank {
-      font-size: 1.1rem;
-      width: 28px;
-      display: flex;
-      align-items: center;
-    }
-
-    .rank-num {
-      font-size: 0.85rem;
-      font-weight: 800;
-      color: var(--text-muted);
-    }
-
-    .lb-player {
-      flex: 1;
-      text-align: left;
-      padding-left: 6px;
-    }
-
-    .p-name {
-      font-weight: 700;
-      font-size: 0.92rem;
-      color: var(--text-main);
-    }
-
-    .lb-score {
-      text-align: right;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-    }
-
-    .lb-score strong {
+    .btn-tile-play {
+      width: 100%;
+      padding: 12px;
       font-size: 1rem;
       font-weight: 800;
-      color: var(--accent-amber);
+      border: none;
+      border-radius: var(--radius-md);
+      color: #ffffff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      transition: all 0.2s ease;
     }
 
-    .score-label {
-      font-size: 0.7rem;
-      color: var(--text-muted);
+    .play-cifre {
+      background: linear-gradient(90deg, #f59e0b, #d97706);
+    }
+    .play-cuvinte {
+      background: linear-gradient(90deg, #8b5cf6, #7c3aed);
     }
 
-    .no-stats-placeholder {
-      padding: 30px 10px;
-      text-align: center;
-      color: var(--text-muted);
+    .btn-tile-play:hover {
+      transform: scale(1.02);
     }
 
-    .icon-empty {
-      font-size: 2.2rem;
-      margin-bottom: 8px;
-      opacity: 0.5;
-    }
-
-    .no-stats-placeholder p {
+    .btn-tile-sub {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+      padding: 8px;
       font-size: 0.85rem;
-      font-style: italic;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .btn-tile-sub:hover {
+      background: rgba(255, 255, 255, 0.22);
     }
 
-    /* MODAL BOT SELECTOR STYLES */
+    /* CODE MODAL INPUT */
+    .code-modal-form {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .code-modal-input {
+      font-size: 1.8rem;
+      font-weight: 800;
+      letter-spacing: 4px;
+      text-align: center;
+      padding: 12px;
+      text-transform: uppercase;
+      background: rgba(15, 23, 42, 0.8);
+      border-color: rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+    }
+
+    .btn-submit-code {
+      padding: 12px;
+      font-size: 1rem;
+    }
+
+    /* MODAL BACKDROP & CARD - DARK THEME */
     .modal-backdrop {
       position: fixed;
       top: 0;
       left: 0;
       width: 100vw;
       height: 100vh;
-      background: rgba(0, 0, 0, 0.45);
-      backdrop-filter: blur(4px);
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
       z-index: 99999;
       display: flex;
       justify-content: center;
@@ -621,13 +610,16 @@ export interface WaitingRoomInfo {
     }
 
     .modal-card {
-      background: #ffffff;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: #ffffff;
       border-radius: var(--radius-lg);
       padding: 32px 24px;
       width: 100%;
       max-width: 440px;
       position: relative;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6);
       text-align: center;
     }
 
@@ -638,34 +630,17 @@ export interface WaitingRoomInfo {
       background: none;
       border: none;
       font-size: 1.8rem;
-      color: #9ca3af;
+      color: #94a3b8;
       cursor: pointer;
     }
-    .modal-close-btn:hover { color: #374151; }
+    .modal-close-btn:hover { color: #ffffff; }
 
-    .bot-modal-icon {
-      font-size: 3rem;
-      margin-bottom: 8px;
-    }
+    .bot-modal-icon { font-size: 3rem; margin-bottom: 8px; }
 
-    .modal-header h2 {
-      font-size: 1.4rem;
-      font-weight: 800;
-      color: #1f2937;
-      margin-bottom: 4px;
-    }
+    .modal-header h2 { font-size: 1.4rem; font-weight: 800; margin-bottom: 4px; color: #ffffff; }
+    .modal-header p { font-size: 0.85rem; color: #cbd5e1; margin-bottom: 16px; }
 
-    .modal-header p {
-      font-size: 0.85rem;
-      color: #6b7280;
-      margin-bottom: 20px;
-    }
-
-    .modal-game-options {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
+    .modal-game-options { display: flex; flex-direction: column; gap: 12px; }
 
     .bot-option-card {
       display: flex;
@@ -677,64 +652,158 @@ export interface WaitingRoomInfo {
       text-align: left;
       transition: all 0.2s ease;
     }
-
     .card-cifre-opt {
-      background: #fefce8;
-      border: 2px solid #fef08a;
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: #ffffff;
     }
-    .card-cifre-opt:hover {
-      background: #fffdf0;
-      border-color: #fde047;
-      transform: translateX(4px);
-    }
+    .card-cifre-opt:hover { background: rgba(245, 158, 11, 0.22); }
 
     .card-cuvinte-opt {
-      background: #f5f3ff;
-      border: 2px solid #ddd6fe;
+      background: rgba(124, 58, 237, 0.12);
+      border: 1px solid rgba(124, 58, 237, 0.3);
+      color: #ffffff;
     }
-    .card-cuvinte-opt:hover {
-      background: #faf5ff;
-      border-color: #a78bfa;
-      transform: translateX(4px);
+    .card-cuvinte-opt:hover { background: rgba(124, 58, 237, 0.22); }
+
+    .opt-icon { font-size: 1.8rem; }
+    .opt-details { flex: 1; }
+    .opt-details h4 { font-size: 1rem; font-weight: 800; margin-bottom: 2px; color: #ffffff; }
+    .opt-details p { font-size: 0.78rem; color: #cbd5e1; margin: 0; }
+    .arrow-icon { color: #94a3b8; font-size: 0.9rem; }
+
+    /* EMBEDDED LEADERBOARD SECTION - DARK THEME */
+    .friv-leaderboard-embed {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
     }
 
-    .opt-icon {
-      font-size: 1.8rem;
+    .lb-embed-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
     }
 
-    .text-amber { color: #d97706; }
-    .text-purple { color: #7c3aed; }
-
-    .opt-details {
-      flex: 1;
+    .lb-embed-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
-    .opt-details h4 {
-      font-size: 1rem;
+    .lb-embed-title h3 {
+      font-size: 1.25rem;
       font-weight: 800;
-      color: #1f2937;
-      margin-bottom: 2px;
+      color: #ffffff;
     }
 
-    .opt-details p {
-      font-size: 0.78rem;
-      color: #6b7280;
-      margin: 0;
+    .lb-category-tabs {
+      display: flex;
+      gap: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 4px;
+      border-radius: 20px;
     }
 
-    .arrow-icon {
-      color: #9ca3af;
-      font-size: 0.9rem;
+    .lb-tab-btn {
+      background: transparent;
+      border: none;
+      font-size: 0.85rem;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: 16px;
+      cursor: pointer;
+      color: #cbd5e1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
     }
 
-    @media (max-width: 820px) {
-      .lobby-layout {
-        grid-template-columns: 1fr;
-      }
+    .lb-tab-btn.active {
+      background: #f59e0b;
+      color: #ffffff;
+      box-shadow: 0 2px 10px rgba(245, 158, 11, 0.4);
     }
 
-    @media (max-width: 540px) {
-      .game-cards-grid {
+    .lb-ranking-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .lb-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius-md);
+      color: #ffffff;
+    }
+
+    .lb-row.gold-row {
+      background: rgba(245, 158, 11, 0.15);
+      border-color: rgba(253, 224, 71, 0.4);
+    }
+
+    .lb-rank {
+      font-size: 0.95rem;
+      font-weight: 800;
+      width: 60px;
+    }
+
+    .lb-player {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .lb-wins {
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+
+    .lb-wins strong {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #f59e0b;
+    }
+
+    .lb-wins span {
+      font-size: 0.75rem;
+      color: #cbd5e1;
+    }
+
+    .lb-empty {
+      padding: 30px;
+      text-align: center;
+      color: #cbd5e1;
+    }
+
+    .error-banner {
+      margin-top: 20px;
+      background: var(--color-red-bg);
+      border: 1px solid var(--color-red-border);
+      color: var(--color-red);
+      padding: 10px;
+      border-radius: var(--radius-md);
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    @media (max-width: 680px) {
+      .friv-games-grid {
         grid-template-columns: 1fr;
       }
     }
@@ -743,16 +812,17 @@ export interface WaitingRoomInfo {
 export class LobbyComponent implements OnInit, OnDestroy {
   registeredPlayers: string[] = ['Alina ❤️', 'Robabe 🤍'];
   selectedPresetName: string = 'Alina ❤️';
-  customPlayerName: string = '';
+  manualRoomCode: string = '';
   activeStatsTab: string = 'ALL';
+  showCodeModal: boolean = false;
   showBotModal: boolean = false;
   isLoading: boolean = false;
   waitingRooms: WaitingRoomInfo[] = [];
-  
+
   globalStatsAll: { [winner: string]: number } = {};
   globalStatsNumbers: { [winner: string]: number } = {};
   globalStatsWords: { [winner: string]: number } = {};
-  
+
   private pollInterval: any = null;
 
   constructor(public gameSocket: GameSocketService) {}
@@ -772,21 +842,8 @@ export class LobbyComponent implements OnInit, OnDestroy {
   }
 
   async loadInitialData() {
-    await this.fetchRegisteredPlayers();
     await this.fetchWaitingRooms();
     await this.fetchAllStats();
-  }
-
-  async fetchRegisteredPlayers() {
-    try {
-      const players = await this.gameSocket.getAllPlayers();
-      if (players && players.length > 0) {
-        this.registeredPlayers = players;
-        if (!this.registeredPlayers.includes(this.selectedPresetName) && this.selectedPresetName !== 'CUSTOM') {
-          this.selectedPresetName = this.registeredPlayers[0];
-        }
-      }
-    } catch (e) {}
   }
 
   async fetchWaitingRooms() {
@@ -823,6 +880,18 @@ export class LobbyComponent implements OnInit, OnDestroy {
     this.activeStatsTab = tab;
   }
 
+  selectPlayer(name: string) {
+    this.selectedPresetName = name;
+  }
+
+  openCodeModal() {
+    this.showCodeModal = true;
+  }
+
+  closeCodeModal() {
+    this.showCodeModal = false;
+  }
+
   openBotModal() {
     this.showBotModal = true;
   }
@@ -832,26 +901,20 @@ export class LobbyComponent implements OnInit, OnDestroy {
   }
 
   get finalPlayerName(): string {
-    if (this.selectedPresetName === 'CUSTOM') {
-      return this.customPlayerName;
-    }
     return this.selectedPresetName;
   }
 
-  onPresetChange() {
-    if (this.selectedPresetName !== 'CUSTOM') {
-      this.customPlayerName = '';
-    }
+  async ensurePlayerSaved(name: string) {
+    // Registered preset players Alina and Robabe are pre-saved
   }
 
-  async ensurePlayerSaved(name: string) {
-    if (this.selectedPresetName === 'CUSTOM' && name) {
-      try {
-        const updated = await this.gameSocket.savePlayer(name);
-        this.registeredPlayers = updated;
-        this.selectedPresetName = name;
-      } catch (e) {}
-    }
+  joinByCode() {
+    const name = this.finalPlayerName.trim();
+    const code = this.manualRoomCode.trim().toUpperCase();
+    if (!name || !code) return;
+    this.closeCodeModal();
+    this.ensurePlayerSaved(name);
+    this.gameSocket.connectSocket(code, name);
   }
 
   async startBotGame(gameType: string) {

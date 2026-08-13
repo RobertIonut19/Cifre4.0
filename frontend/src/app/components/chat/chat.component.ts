@@ -49,17 +49,22 @@ import { GameSocketService } from '../../services/game-socket.service';
       flex-direction: column;
       height: 380px;
       padding: 16px;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: var(--radius-lg);
+      color: #ffffff;
     }
 
     .chat-header {
       margin-bottom: 10px;
       padding-bottom: 8px;
-      border-bottom: 1px solid var(--border-color);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
     }
 
     .chat-header h4 {
       font-size: 1.1rem;
-      color: var(--text-main);
+      color: #ffffff;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -82,7 +87,7 @@ import { GameSocketService } from '../../services/game-socket.service';
     .no-messages {
       margin: auto;
       text-align: center;
-      color: var(--text-muted);
+      color: #cbd5e1;
       font-size: 0.85rem;
       font-style: italic;
     }
@@ -90,36 +95,38 @@ import { GameSocketService } from '../../services/game-socket.service';
     .chat-bubble {
       align-self: flex-start;
       max-width: 80%;
-      background: #f4ede4;
-      border: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 12px 12px 12px 2px;
       padding: 8px 12px;
+      color: #ffffff;
     }
 
     .chat-bubble.own-message {
       align-self: flex-end;
-      background: #fff7ed;
-      border-color: #fdba74;
+      background: rgba(245, 158, 11, 0.2);
+      border-color: rgba(245, 158, 11, 0.4);
       border-radius: 12px 12px 2px 12px;
+      color: #ffffff;
     }
 
     .msg-author {
       font-size: 0.75rem;
       font-weight: 700;
-      color: var(--accent-amber);
+      color: #fef08a;
       margin-bottom: 2px;
     }
 
     .msg-time {
       font-size: 0.7rem;
-      color: var(--text-light);
+      color: #cbd5e1;
       font-weight: 400;
       margin-left: 6px;
     }
 
     .msg-text {
       font-size: 0.9rem;
-      color: var(--text-main);
+      color: #ffffff;
       word-break: break-word;
     }
 
@@ -131,6 +138,9 @@ import { GameSocketService } from '../../services/game-socket.service';
     .chat-input {
       font-size: 0.9rem;
       padding: 10px 14px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #ffffff;
     }
 
     .btn-icon {
