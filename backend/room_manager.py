@@ -205,10 +205,21 @@ class Room:
                 self.players[self.winner]["name"] if self.winner in self.players else "Necunoscut"
             )
             total_rounds = (len(self.guesses_history) + 1) // 2
+            
+            p1_id = self.player_order[0] if len(self.player_order) > 0 else None
+            p2_id = self.player_order[1] if len(self.player_order) > 1 else None
+            
+            p1_secret = self.players[p1_id]["secret"] if (p1_id and p1_id in self.players) else None
+            p2_secret = self.players[p2_id]["secret"] if (p2_id and p2_id in self.players) else None
+
             try:
                 import threading
                 from database import save_match
-                threading.Thread(target=save_match, args=(self.room_id, winner_name, total_rounds, self.game_type), daemon=True).start()
+                threading.Thread(
+                    target=save_match, 
+                    args=(self.room_id, winner_name, total_rounds, self.game_type, p1_secret, p2_secret), 
+                    daemon=True
+                ).start()
             except Exception as e:
                 print("Error saving match to database:", e)
 

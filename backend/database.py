@@ -34,9 +34,13 @@ def init_db():
                 game_type VARCHAR(50) DEFAULT 'numbers',
                 winner_name VARCHAR(255) NOT NULL,
                 total_rounds INT,
+                p1_secret VARCHAR(50),
+                p2_secret VARCHAR(50),
                 played_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         """)
+        cursor.execute("ALTER TABLE matches ADD COLUMN IF NOT EXISTS p1_secret VARCHAR(50);")
+        cursor.execute("ALTER TABLE matches ADD COLUMN IF NOT EXISTS p2_secret VARCHAR(50);")
 
         conn.commit()
         conn.close()
@@ -70,13 +74,13 @@ def get_all_players() -> List[str]:
         print("PostgreSQL get_all_players notice:", e)
         return ["Alina ❤️", "Robabe 🤍"]
 
-def save_match(room_id: str, winner_name: str, total_rounds: int, game_type: str = "numbers"):
+def save_match(room_id: str, winner_name: str, total_rounds: int, game_type: str = "numbers", p1_secret: str = None, p2_secret: str = None):
     try:
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO matches (room_id, winner_name, total_rounds, game_type) VALUES (%s, %s, %s, %s)",
-            (room_id, winner_name, total_rounds, game_type)
+            "INSERT INTO matches (room_id, winner_name, total_rounds, game_type, p1_secret, p2_secret) VALUES (%s, %s, %s, %s, %s, %s)",
+            (room_id, winner_name, total_rounds, game_type, p1_secret, p2_secret)
         )
         conn.commit()
         conn.close()
