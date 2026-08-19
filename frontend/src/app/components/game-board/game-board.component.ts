@@ -1,4 +1,4 @@
-import { Component, DoCheck, OnInit, HostListener } from '@angular/core';
+import { Component, DoCheck, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { GameSocketService } from '../../services/game-socket.service';
@@ -46,12 +46,18 @@ export interface ScoreboardData {
           {{ state.game_type === 'words' ? 'CUVINTE 5' : 'CIFRE 4' }}
         </div>
 
-        <!-- SCOREBOARD PERSISTENT BADGE IN HEADER -->
-        <div class="header-scoreboard" title="Scor General Memorat">
-          <span class="sc-item alina-sc">Alina ❤️ <strong>{{ scoreboard.alinaWins }}</strong></span>
+        <!-- SCOREBOARD BADGE IN HEADER FOR CURRENT ROOM MATCH SERIES -->
+        <div class="header-scoreboard" title="Scorul seriei de meciuri din această cameră">
+          <span class="sc-item alina-sc">
+            {{ getRoomSeriesScore().p1Name }} <strong>{{ getRoomSeriesScore().p1Wins }}</strong>
+          </span>
           <span class="sc-divider">-</span>
-          <span class="sc-item robabe-sc"><strong>{{ scoreboard.robabeWins }}</strong> Robabe 🤍</span>
-          <span *ngIf="scoreboard.ties > 0" class="sc-ties">(🤝 {{ scoreboard.ties }})</span>
+          <span class="sc-item robabe-sc">
+            <strong>{{ getRoomSeriesScore().p2Wins }}</strong> {{ getRoomSeriesScore().p2Name }}
+          </span>
+          <span *ngIf="getRoomSeriesScore().ties > 0" class="sc-ties">
+            (🤝 {{ getRoomSeriesScore().ties }})
+          </span>
         </div>
 
         <!-- MY SECRET (VISIBLE BY DEFAULT) -->
@@ -267,63 +273,37 @@ export interface ScoreboardData {
           <app-notes-panel [gameType]="state.game_type || 'numbers'"></app-notes-panel>
         </div>
 
-        <!-- Right Section: Scoreboard, Chat & Players list -->
+        <!-- Right Section: Chat at Top, Scoreboard from DB below -->
         <div class="right-section">
           
-          <!-- SCOREBOARD DETAILED CARD PERSISTED IN LOCALSTORAGE -->
-          <div class="glass-panel scoreboard-card">
-            <div class="sc-card-header">
-              <h4><i class="fa-solid fa-trophy text-amber"></i> Evidență Meciuri (Scor)</h4>
-              <button class="btn-reset-sc" (click)="resetScoreboard()" title="Resetează Scor">
-                <i class="fa-solid fa-rotate-left"></i>
-              </button>
-            </div>
-
-            <div class="scoreboard-stats">
-              <div class="sc-player-row alina-row">
-                <span class="sc-name">Alina ❤️</span>
-                <strong class="sc-val">{{ scoreboard.alinaWins }} victorii</strong>
-              </div>
-              <div class="sc-player-row robabe-row">
-                <span class="sc-name">Robabe 🤍</span>
-                <strong class="sc-val">{{ scoreboard.robabeWins }} victorii</strong>
-              </div>
-              <div class="sc-player-row tie-row">
-                <span class="sc-name">Egalități 🤝</span>
-                <strong class="sc-val">{{ scoreboard.ties }} remize</strong>
-              </div>
-
-              <div *ngFor="let name of getOtherWinnerNames()" class="sc-player-row other-row">
-                <span class="sc-name">{{ name }}</span>
-                <strong class="sc-val">{{ scoreboard.otherWins[name] }} victorii</strong>
-              </div>
-            </div>
-          </div>
-
-          <!-- Players Box ("Jucători") -->
-          <div class="glass-panel players-card">
-            <h4><i class="fa-solid fa-users text-amber"></i> Jucători</h4>
-            <div class="players-list">
-              <div *ngFor="let pid of state.player_order" class="player-item" [class.is-active-turn]="state.current_turn === pid">
-                <div class="player-avatar">
-                  <i class="fa-solid" [class.fa-robot]="pid === 'BOT_AGENT'" [class.fa-user]="pid !== 'BOT_AGENT'"></i>
-                </div>
-                <div class="player-details">
-                  <span class="p-name">{{ state.players[pid].name }}</span>
-                  <span *ngIf="pid === gameSocket.playerId()" class="you-badge">(Tu)</span>
-                </div>
-                <div class="p-status">
-                  <span *ngIf="state.players[pid].has_secret" class="status-dot green" title="Secret ales"></span>
-                  <span *ngIf="!state.players[pid].has_secret" class="status-dot orange" title="Se gândește..."></span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Live Chat Component -->
+          <!-- 1. Live Chat Component (MOVED TO TOP OF RIGHT SECTION) -->
           <app-chat></app-chat>
 
-          <!-- PAST GAMES CUMULATIVE HISTORY -->
+          <!-- 2. SCOREBOARD DETAILED CARD (LOADED REAL-TIME FROM DB FOR CURRENT GAME TYPE) -->
+          <div class="glass-panel scoreboard-card">
+            <div class="sc-card-header">
+              <h4>
+                <i class="fa-solid fa-trophy text-amber"></i> 
+                Evidență Meciuri ({{ state.game_type === 'words' ? 'Cuvinte 5' : 'Cifre 4' }})
+              </h4>
+            </div>
+
+            <div *ngIf="getSortedDbStats().length > 0; else noDbStats" class="scoreboard-stats">
+              <div *ngFor="let item of getSortedDbStats()" class="sc-player-row">
+                <span class="sc-name">
+                  <span class="p-emoji">{{ item.name.includes('Alina') ? '👩🏻‍🦱' : (item.name.includes('Robabe') ? '🧑🏽' : (item.name.includes('Egal') ? '🤝' : '👤')) }}</span>
+                  {{ item.name }}
+                </span>
+                <strong class="sc-val">{{ item.wins }} {{ item.wins === 1 ? 'victorie' : 'victorii' }}</strong>
+              </div>
+            </div>
+
+            <ng-template #noDbStats>
+              <div class="sc-empty-text">Nicio victorie înregistrată încă în această categorie.</div>
+            </ng-template>
+          </div>
+
+          <!-- 3. PAST GAMES CUMULATIVE HISTORY (IN ROOM) -->
           <div *ngIf="state.past_games_history && state.past_games_history.length > 0" class="glass-panel past-games-card animate-fade-in">
             <h4><i class="fa-solid fa-clock-rotate-left text-amber"></i> Istoric Meciuri Cameră</h4>
             
@@ -1033,6 +1013,18 @@ export interface ScoreboardData {
       color: var(--accent-amber);
     }
 
+    .p-emoji {
+      margin-right: 4px;
+    }
+
+    .sc-empty-text {
+      font-size: 0.82rem;
+      color: #cbd5e1;
+      font-style: italic;
+      text-align: center;
+      padding: 8px 0;
+    }
+
     /* PLAYERS CARD */
     .players-card {
       padding: 16px;
@@ -1146,7 +1138,7 @@ export interface ScoreboardData {
     }
   `]
 })
-export class GameBoardComponent implements OnInit, DoCheck {
+export class GameBoardComponent implements OnInit, DoCheck, OnDestroy {
   mySecretInput: string = '';
   showSecret: boolean = false;
   showMySecretInGame: boolean = true;
@@ -1160,19 +1152,23 @@ export class GameBoardComponent implements OnInit, DoCheck {
   showMyTurnBanner: boolean = false;
   private previousIsMyTurn: boolean = false;
   private bannerTimer: any = null;
-  private processedGameIds: Set<number> = new Set();
 
-  public scoreboard: ScoreboardData = {
-    alinaWins: 0,
-    robabeWins: 0,
-    ties: 0,
-    otherWins: {}
-  };
+  dbStatsMap: { [winner_name: string]: number } = {};
+  private dbStatsInterval: any = null;
 
   constructor(public gameSocket: GameSocketService) {}
 
   ngOnInit() {
-    this.loadScoreboard();
+    this.fetchDbStats();
+    this.dbStatsInterval = setInterval(() => {
+      this.fetchDbStats();
+    }, 2500);
+  }
+
+  ngOnDestroy() {
+    if (this.dbStatsInterval) {
+      clearInterval(this.dbStatsInterval);
+    }
   }
 
   ngDoCheck() {
@@ -1181,59 +1177,65 @@ export class GameBoardComponent implements OnInit, DoCheck {
       this.triggerTurnBanner();
     }
     this.previousIsMyTurn = currentIsMyTurn;
-
-    this.checkAndRecordScoreboard();
   }
 
-  loadScoreboard() {
-    const saved = localStorage.getItem('cifre_scoreboard_v1');
-    if (saved) {
-      try {
-        this.scoreboard = JSON.parse(saved);
-      } catch (e) {}
-    }
-  }
-
-  saveScoreboard() {
-    localStorage.setItem('cifre_scoreboard_v1', JSON.stringify(this.scoreboard));
-  }
-
-  resetScoreboard() {
-    this.scoreboard = {
-      alinaWins: 0,
-      robabeWins: 0,
-      ties: 0,
-      otherWins: {}
-    };
-    this.saveScoreboard();
-  }
-
-  checkAndRecordScoreboard() {
+  async fetchDbStats() {
     const state = this.gameSocket.gameState();
-    if (!state || state.state !== 'FINISHED' || !state.winner) return;
+    const gameType = state?.game_type || 'numbers';
+    try {
+      this.dbStatsMap = await this.gameSocket.getGlobalStats(gameType);
+    } catch (e) {}
+  }
 
-    const gameCount = (state.past_games_history?.length || 0) + 1;
-    if (this.processedGameIds.has(gameCount)) return;
+  getSortedDbStats(): { name: string; wins: number }[] {
+    const map = this.dbStatsMap || {};
+    const items = Object.keys(map).map(name => ({ name, wins: map[name] }));
+    return items.sort((a, b) => b.wins - a.wins);
+  }
 
-    this.processedGameIds.add(gameCount);
+  getRoomSeriesScore(): { p1Name: string; p1Wins: number; p2Name: string; p2Wins: number; ties: number } {
+    const state = this.gameSocket.gameState();
+    if (!state) {
+      return { p1Name: 'Alina ❤️', p1Wins: 0, p2Name: 'Robabe 🤍', p2Wins: 0, ties: 0 };
+    }
 
-    if (state.winner === 'TIE') {
-      this.scoreboard.ties++;
-    } else {
-      const winnerName = state.winner_name || '';
-      if (winnerName.includes('Alina')) {
-        this.scoreboard.alinaWins++;
-      } else if (winnerName.includes('Robabe')) {
-        this.scoreboard.robabeWins++;
-      } else {
-        this.scoreboard.otherWins[winnerName] = (this.scoreboard.otherWins[winnerName] || 0) + 1;
+    const porder = state.player_order || [];
+    const p1Id = porder[0];
+    const p2Id = porder[1];
+
+    const p1Name = p1Id ? state.players[p1Id]?.name : 'Jucător 1';
+    const p2Name = p2Id ? state.players[p2Id]?.name : 'Jucător 2';
+
+    let p1Wins = 0;
+    let p2Wins = 0;
+    let ties = 0;
+
+    const history = state.past_games_history || [];
+    history.forEach(g => {
+      if (g.winner === 'TIE') {
+        ties++;
+      } else if (g.winner === p1Id || g.winner_name === p1Name) {
+        p1Wins++;
+      } else if (g.winner === p2Id || g.winner_name === p2Name) {
+        p2Wins++;
+      } else if (g.winner_name && g.winner_name.includes('Alina')) {
+        if (p1Name.includes('Alina')) p1Wins++; else p2Wins++;
+      } else if (g.winner_name && g.winner_name.includes('Robabe')) {
+        if (p1Name.includes('Robabe')) p1Wins++; else p2Wins++;
+      }
+    });
+
+    if (state.state === 'FINISHED' && state.winner) {
+      if (state.winner === 'TIE') {
+        ties++;
+      } else if (state.winner === p1Id) {
+        p1Wins++;
+      } else if (state.winner === p2Id) {
+        p2Wins++;
       }
     }
-    this.saveScoreboard();
-  }
 
-  getOtherWinnerNames(): string[] {
-    return Object.keys(this.scoreboard.otherWins || {});
+    return { p1Name, p1Wins, p2Name, p2Wins, ties };
   }
 
   triggerTurnBanner() {

@@ -212,16 +212,22 @@ class Room:
             p1_secret = self.players[p1_id]["secret"] if (p1_id and p1_id in self.players) else None
             p2_secret = self.players[p2_id]["secret"] if (p2_id and p2_id in self.players) else None
 
-            try:
-                import threading
-                from database import save_match
-                threading.Thread(
-                    target=save_match, 
-                    args=(self.room_id, winner_name, total_rounds, self.game_type, p1_secret, p2_secret), 
-                    daemon=True
-                ).start()
-            except Exception as e:
-                print("Error saving match to database:", e)
+            # Rule: In Bot games, save match ONLY if Bot won. Skip human player win against Bot.
+            should_save = True
+            if self.is_bot_game and self.winner != "BOT_AGENT":
+                should_save = False
+
+            if should_save:
+                try:
+                    import threading
+                    from database import save_match
+                    threading.Thread(
+                        target=save_match, 
+                        args=(self.room_id, winner_name, total_rounds, self.game_type, p1_secret, p2_secret), 
+                        daemon=True
+                    ).start()
+                except Exception as e:
+                    print("Error saving match to database:", e)
 
         return guess_entry
 
