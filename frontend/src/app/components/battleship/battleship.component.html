@@ -1,0 +1,285 @@
+﻿<div *ngIf="gameSocket.gameState() as state" class="bs-container animate-fade-in">
+  
+  <!-- TOP NAVIGATION & STATUS HEADER -->
+  <header class="glass-panel bs-top-bar">
+    <div class="bs-brand">
+      <span class="bs-logo-icon">🚢</span>
+      <div class="bs-title-group">
+        <span class="bs-title">BĂTĂLIE NAVALĂ</span>
+        <span class="bs-room-tag" (click)="copyRoomCode(state.room_id)" title="Click pentru copiere">
+          <i class="fa-solid fa-copy"></i> #{{ state.room_id }}
+        </span>
+      </div>
+    </div>
+
+    <div class="bs-turn-status" [class.my-turn]="isMyTurn(state)" [class.opp-turn]="!isMyTurn(state) && state.state === 'PLAYING'">
+      <div *ngIf="state.state === 'WAITING_FOR_PLAYERS'" class="turn-text pulse">
+        <i class="fa-solid fa-spinner fa-spin"></i> Așteptăm conectarea jucătorului 2...
+      </div>
+      
+      <div *ngIf="state.state === 'WAITING_FOR_SECRETS'" class="turn-text">
+        <i class="fa-solid fa-shield-halved text-cyan"></i> 
+        <span *ngIf="!isMyFleetLocked(state)">Poziționează flota și confirmă gata de luptă!</span>
+        <span *ngIf="isMyFleetLocked(state)">Flota ta e pregătită! Așteptăm oponentul...</span>
+      </div>
+
+      <div *ngIf="state.state === 'PLAYING'" class="turn-text">
+        <span *ngIf="isMyTurn(state)" class="animate-bounce-in">
+          <i class="fa-solid fa-crosshairs text-amber"></i> <strong>E rândul tău să tragi!</strong> 🎯
+        </span>
+        <span *ngIf="!isMyTurn(state)">
+          <i class="fa-solid fa-hourglass-half text-cyan"></i> Oponentul (<strong>{{ state.current_turn_name }}</strong>) țintește...
+        </span>
+      </div>
+
+      <div *ngIf="state.state === 'FINISHED'" class="turn-text win-highlight">
+        <i class="fa-solid fa-trophy text-amber"></i> {{ state.winner_name }}
+      </div>
+    </div>
+  </header>
+
+  <!-- PHASE 1: FLEET SETUP & PLACEMENT -->
+  <div *ngIf="state.state === 'WAITING_FOR_SECRETS' && !isMyFleetLocked(state)" class="setup-section glass-panel animate-pop-in">
+    <div class="setup-header">
+      <div class="setup-title-box">
+        <h2><i class="fa-solid fa-anchor text-cyan"></i> Pregătirea Flotei Tale</h2>
+        <p>Plasează toate cele 5 nave pe hartă sau folosește butonul de plasare automată.</p>
+      </div>
+
+      <div class="setup-actions">
+        <button class="bs-btn btn-random" (click)="autoPlaceFleet()">
+          <i class="fa-solid fa-dice"></i> Plasare Automată 🎲
+        </button>
+        <button class="bs-btn btn-reset" (click)="resetFleet()">
+          <i class="fa-solid fa-rotate-left"></i> Resetează
+        </button>
+        <button 
+          class="bs-btn btn-lock" 
+          [disabled]="placedShips.length < 5" 
+          [class.ready-pulse]="placedShips.length === 5"
+          (click)="lockInFleet()">
+          <i class="fa-solid fa-check-double"></i> GATA DE LUPTĂ ({{ placedShips.length }}/5) 🚀
+        </button>
+      </div>
+    </div>
+
+    <div class="setup-body">
+      <!-- SHIP DOCK SELECTOR -->
+      <div class="ship-dock">
+        <div class="dock-title"><i class="fa-solid fa-layer-group"></i> Hangar Nave</div>
+        
+        <div class="orientation-switch">
+          <span>Orientare:</span>
+          <button 
+            class="btn-orient" 
+            [class.active]="selectedOrientation === 'H'" 
+            (click)="selectedOrientation = 'H'">
+            <i class="fa-solid fa-arrows-left-right"></i> Orizontal
+          </button>
+          <button 
+            class="btn-orient" 
+            [class.active]="selectedOrientation === 'V'" 
+            (click)="selectedOrientation = 'V'">
+            <i class="fa-solid fa-arrows-up-down"></i> Vertical
+          </button>
+        </div>
+
+        <div class="dock-ships-list">
+          <div 
+            *ngFor="let s of shipDefs" 
+            class="dock-ship-item"
+            [class.selected]="selectedShipId === s.id"
+            [class.placed]="isShipPlaced(s.id)"
+            (click)="selectShip(s.id)">
+            <div class="dock-ship-header">
+              <span class="d-icon">{{ s.icon }}</span>
+              <span class="d-name">{{ s.name }}</span>
+              <span class="d-size">({{ s.size }} căsuțe)</span>
+              <span *ngIf="isShipPlaced(s.id)" class="d-badge"><i class="fa-solid fa-circle-check"></i></span>
+            </div>
+            <div class="dock-ship-preview">
+              <span *ngFor="let _ of getArray(s.size)" class="dock-cell"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SETUP 10x10 BOARD -->
+      <div class="setup-grid-wrapper">
+        <div class="grid-col-headers">
+          <span class="corner-cell"></span>
+          <span *ngFor="let letter of colLetters" class="col-hdr">{{ letter }}</span>
+        </div>
+
+        <div class="grid-rows-container">
+          <div *ngFor="let r of rowIndices" class="grid-row">
+            <span class="row-hdr">{{ r + 1 }}</span>
+            <div 
+              *ngFor="let c of colIndices" 
+              class="bs-cell setup-cell"
+              [class.occupied]="isSetupCellOccupied(r, c)"
+              [class.preview-valid]="isPreviewCell(r, c) && isPreviewValid"
+              [class.preview-invalid]="isPreviewCell(r, c) && !isPreviewValid"
+              (mouseenter)="onCellHover(r, c)"
+              (mouseleave)="onCellLeave()"
+              (click)="onSetupCellClick(r, c)">
+              <span *ngIf="getShipIconAt(r, c) as icon" class="placed-ship-icon">{{ icon }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WAITING OPPONENT OVERLAY IF FLEET LOCKED -->
+  <div *ngIf="state.state === 'WAITING_FOR_SECRETS' && isMyFleetLocked(state)" class="waiting-card glass-panel animate-pop-in">
+    <div class="waiting-spinner">⚓</div>
+    <h2>Flota ta a fost desfășurată cu succes!</h2>
+    <p>Așteptăm ca oponentul să își finalizeze poziționarea navelor...</p>
+  </div>
+
+  <!-- PHASE 2: BATTLE ARENA (DUAL 10x10 BOARDS) -->
+  <div *ngIf="state.state === 'PLAYING' || state.state === 'FINISHED'" class="battle-arena animate-fade-in">
+    
+    <div class="arena-boards-row">
+      <!-- BOARD 1: ENEMY RADAR (ATTACK GRID) -->
+      <div class="board-column glass-panel">
+        <div class="board-header">
+          <div class="bh-title">
+            <i class="fa-solid fa-crosshairs text-amber"></i> Radar Inamic (Țintă)
+          </div>
+          <div class="bh-subtitle">Dă click pe căsuță pentru a lansa racheta 🚀</div>
+        </div>
+
+        <div class="battle-grid-wrapper">
+          <div class="grid-col-headers">
+            <span class="corner-cell"></span>
+            <span *ngFor="let letter of colLetters" class="col-hdr">{{ letter }}</span>
+          </div>
+
+          <div class="grid-rows-container">
+            <div *ngFor="let r of rowIndices" class="grid-row">
+              <span class="row-hdr">{{ r + 1 }}</span>
+              <div 
+                *ngFor="let c of colIndices" 
+                class="bs-cell attack-cell"
+                [class.can-shoot]="isMyTurn(state) && !hasShotAt(state, r, c) && state.state === 'PLAYING'"
+                [class.cell-hit]="getAttackShotResult(state, r, c) === 'HIT' || getAttackShotResult(state, r, c) === 'SUNK'"
+                [class.cell-miss]="getAttackShotResult(state, r, c) === 'MISS'"
+                [class.cell-sunk]="getAttackShotResult(state, r, c) === 'SUNK'"
+                (click)="onFireShot(state, r, c)">
+                
+                <span *ngIf="getAttackShotResult(state, r, c) === 'HIT'" class="shot-fx hit animate-pop-in">💥</span>
+                <span *ngIf="getAttackShotResult(state, r, c) === 'SUNK'" class="shot-fx sunk animate-pop-in">☠️</span>
+                <span *ngIf="getAttackShotResult(state, r, c) === 'MISS'" class="shot-fx miss animate-fade-in">💧</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ENEMY FLEET STATUS CARDS -->
+        <div class="fleet-status-hud">
+          <div class="hud-title">Flota Inamică:</div>
+          <div class="hud-ship-pills">
+            <div 
+              *ngFor="let s of shipDefs" 
+              class="hud-ship-pill"
+              [class.sunk]="isOpponentShipSunk(state, s.id)">
+              <span>{{ s.icon }} {{ s.name }} ({{ s.size }})</span>
+              <span *ngIf="isOpponentShipSunk(state, s.id)" class="sunk-tag">SCUFUNDAT</span>
+              <span *ngIf="!isOpponentShipSunk(state, s.id)" class="afloat-tag">Activ</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOARD 2: YOUR FLEET (DEFENSE GRID) -->
+      <div class="board-column glass-panel">
+        <div class="board-header">
+          <div class="bh-title">
+            <i class="fa-solid fa-shield-halved text-cyan"></i> Flota Ta (Apărare)
+          </div>
+          <div class="bh-subtitle">Poziția navelor tale și loviturile oponentului</div>
+        </div>
+
+        <div class="battle-grid-wrapper">
+          <div class="grid-col-headers">
+            <span class="corner-cell"></span>
+            <span *ngFor="let letter of colLetters" class="col-hdr">{{ letter }}</span>
+          </div>
+
+          <div class="grid-rows-container">
+            <div *ngFor="let r of rowIndices" class="grid-row">
+              <span class="row-hdr">{{ r + 1 }}</span>
+              <div 
+                *ngFor="let c of colIndices" 
+                class="bs-cell defense-cell"
+                [class.has-my-ship]="isDefenseShipCell(state, r, c)"
+                [class.defense-hit]="getDefenseShotResult(state, r, c) === 'HIT' || getDefenseShotResult(state, r, c) === 'SUNK'"
+                [class.defense-miss]="getDefenseShotResult(state, r, c) === 'MISS'">
+                
+                <span *ngIf="isDefenseShipCell(state, r, c) && !getDefenseShotResult(state, r, c)" class="ship-hull">🚢</span>
+                <span *ngIf="getDefenseShotResult(state, r, c) === 'HIT' || getDefenseShotResult(state, r, c) === 'SUNK'" class="shot-fx hit">🔥</span>
+                <span *ngIf="getDefenseShotResult(state, r, c) === 'MISS'" class="shot-fx miss">💧</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- YOUR FLEET STATUS CARDS -->
+        <div class="fleet-status-hud">
+          <div class="hud-title">Starea Navelor Tale:</div>
+          <div class="hud-ship-pills">
+            <div 
+              *ngFor="let s of shipDefs" 
+              class="hud-ship-pill"
+              [class.sunk]="isMyShipSunk(state, s.id)">
+              <span>{{ s.icon }} {{ s.name }} ({{ s.size }})</span>
+              <span *ngIf="isMyShipSunk(state, s.id)" class="sunk-tag">DISTRUS</span>
+              <span *ngIf="!isMyShipSunk(state, s.id)" class="afloat-tag">Intact</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMBAT LOG & CHAT FOOTER -->
+    <div class="arena-footer-grid">
+      <div class="combat-log glass-panel">
+        <div class="log-title"><i class="fa-solid fa-list-check"></i> Jurnalul Bătăliei</div>
+        <div class="log-list">
+          <div *ngIf="getRecentShots(state).length === 0" class="empty-log">
+            Nicio lovitură trasă încă.
+          </div>
+          <div *ngFor="let shot of getRecentShots(state)" class="log-entry" [class.log-hit]="shot.result === 'HIT' || shot.result === 'SUNK'">
+            <span class="log-time">{{ shot.time_taken_seconds || 1 }}s</span>
+            <strong>{{ shot.player_name }}</strong> a tras la <strong>{{ shot.coord }}</strong>: 
+            <span *ngIf="shot.result === 'HIT'" class="txt-hit">LOVIT! 💥</span>
+            <span *ngIf="shot.result === 'SUNK'" class="txt-sunk">SCUFUNDAT {{ shot.ship_name }}! ☠️</span>
+            <span *ngIf="shot.result === 'MISS'" class="txt-miss">Apă 🌊</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-column">
+        <app-chat></app-chat>
+      </div>
+    </div>
+  </div>
+
+  <!-- VICTORY / GAME OVER MODAL -->
+  <div *ngIf="state.state === 'FINISHED'" class="victory-overlay animate-fade-in">
+    <div class="victory-card glass-panel animate-pop-in">
+      <div class="vic-icon">{{ state.winner === gameSocket.playerId() ? '🏆' : '⚓' }}</div>
+      <h2>{{ state.winner === gameSocket.playerId() ? 'VICTORIE GLORIOASĂ!' : 'FLOTĂ DISTRUSĂ!' }}</h2>
+      <p class="vic-msg">{{ state.winner_name }}</p>
+
+      <div class="vic-actions">
+        <button class="bs-btn btn-restart" (click)="onPlayAgain()">
+          <i class="fa-solid fa-rotate-right"></i> Joacă din nou 🔄
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>

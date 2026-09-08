@@ -4,13 +4,14 @@ import { GameSocketService } from './services/game-socket.service';
 import { LobbyComponent } from './components/lobby/lobby.component';
 import { GameBoardComponent } from './components/game-board/game-board.component';
 import { LeaderboardComponent } from './components/leaderboard/leaderboard.component';
+import { BattleshipComponent } from './components/battleship/battleship.component';
 
 export type ActiveView = 'HUB' | 'GAME' | 'LEADERBOARD';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, LobbyComponent, GameBoardComponent, LeaderboardComponent],
+  imports: [CommonModule, LobbyComponent, GameBoardComponent, LeaderboardComponent, BattleshipComponent],
   template: `
     <div class="friv-app-wrapper">
       
@@ -47,7 +48,8 @@ export type ActiveView = 'HUB' | 'GAME' | 'LEADERBOARD';
               <i class="fa-solid fa-arrow-left"></i> Înapoi la Meniu
             </button>
           </div>
-          <app-game-board></app-game-board>
+          <app-battleship *ngIf="gameSocket.gameState()?.game_type === 'battleship'"></app-battleship>
+          <app-game-board *ngIf="gameSocket.gameState()?.game_type !== 'battleship'"></app-game-board>
         </div>
 
         <!-- VIEW 3: LEADERBOARD OVERLAY SCREEN -->

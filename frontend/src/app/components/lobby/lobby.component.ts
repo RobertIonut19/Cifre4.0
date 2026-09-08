@@ -55,8 +55,11 @@ export interface WaitingRoomInfo {
           <div class="waiting-grid">
             <div *ngFor="let room of waitingRooms" class="waiting-card">
               <div class="room-info">
-                <i class="fa-solid text-amber" [class.fa-calculator]="room.game_type !== 'words'" [class.fa-font]="room.game_type === 'words'"></i>
-                <span>{{ room.game_type === 'words' ? 'Cuvinte 5' : 'Cifre 4' }} cu <strong>{{ room.host_name }}</strong></span>
+                <i class="fa-solid text-amber" 
+                   [class.fa-calculator]="room.game_type === 'numbers' || !room.game_type" 
+                   [class.fa-font]="room.game_type === 'words'"
+                   [class.fa-ship]="room.game_type === 'battleship'"></i>
+                <span>{{ getGameTypeName(room.game_type) }} cu <strong>{{ room.host_name }}</strong></span>
               </div>
               <button 
                 class="btn-join-fast" 
@@ -120,9 +123,32 @@ export interface WaitingRoomInfo {
             </div>
           </div>
 
+          <!-- GAME TILE 3: BATTLESHIP (CYAN / OCEAN NAVAL) -->
+          <div class="friv-tile tile-battleship">
+            <div class="tile-badge blue-badge">
+              <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+            </div>
+            <div class="tile-icon-wrapper">
+              <i class="fa-solid fa-ship tile-icon"></i>
+            </div>
+            <h3 class="tile-title">Bătălie Navală</h3>
+            <p class="tile-desc">
+              Scufundă cele 5 nave de luptă ale iubirii tale pe radarul 10x10!
+            </p>
+
+            <div class="tile-actions">
+              <button 
+                class="btn-tile-play play-battleship" 
+                (click)="createPvpRoom('battleship')"
+                [disabled]="!finalPlayerName.trim() || isLoading">
+                <i class="fa-solid fa-anchor"></i> Luptă Navală 1v1
+              </button>
+            </div>
+          </div>
+
         </div>
 
-        <!-- LEADERBOARD SECTION (GENERAL / CIFRE / CUVINTE BELOW GAME CARDS) -->
+        <!-- LEADERBOARD SECTION (GENERAL / CIFRE / CUVINTE / BATTLESHIP BELOW GAME CARDS) -->
         <div class="friv-leaderboard-embed animate-fade-in">
           <div class="lb-embed-header">
             <div class="lb-embed-title">
@@ -130,7 +156,7 @@ export interface WaitingRoomInfo {
               <h3>Clasament Victorii & Statistici</h3>
             </div>
 
-            <!-- CATEGORY FILTER TABS: General / Cifre / Cuvinte -->
+            <!-- CATEGORY FILTER TABS: General / Cifre / Cuvinte / Bătălie Navală -->
             <div class="lb-category-tabs">
               <button 
                 class="lb-tab-btn" 
@@ -151,6 +177,13 @@ export interface WaitingRoomInfo {
                 [class.active]="activeStatsTab === 'words'" 
                 (click)="setStatsTab('words')">
                 <i class="fa-solid fa-font"></i> Cuvinte
+              </button>
+
+              <button 
+                class="lb-tab-btn" 
+                [class.active]="activeStatsTab === 'battleship'" 
+                (click)="setStatsTab('battleship')">
+                <i class="fa-solid fa-ship"></i> Bătălie Navală
               </button>
             </div>
           </div>
@@ -244,6 +277,15 @@ export interface WaitingRoomInfo {
             <div class="opt-details">
               <h4>Cuvinte 5 vs Bot</h4>
               <p>Exersează ghicitul cuvântului secret din 5 litere</p>
+            </div>
+            <i class="fa-solid fa-chevron-right arrow-icon"></i>
+          </div>
+
+          <div class="bot-option-card card-battleship-opt" (click)="startBotGame('battleship')">
+            <i class="fa-solid fa-ship opt-icon text-cyan"></i>
+            <div class="opt-details">
+              <h4>Bătălie Navală vs Bot</h4>
+              <p>Înfruntă strategia AI de țintire și vânătoare navală</p>
             </div>
             <i class="fa-solid fa-chevron-right arrow-icon"></i>
           </div>
@@ -468,6 +510,19 @@ export interface WaitingRoomInfo {
                   url('/assets/keyboard_background.avif') center/cover no-repeat;
     }
 
+    .tile-battleship {
+      background: linear-gradient(135deg, rgba(8, 47, 73, 0.82) 0%, rgba(2, 132, 199, 0.9) 100%);
+      border: 2px solid #7dd3fc;
+      color: #ffffff;
+      position: relative;
+      overflow: hidden;
+    }
+    .tile-battleship:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 16px 36px rgba(2, 132, 199, 0.4);
+      background: linear-gradient(135deg, rgba(8, 47, 73, 0.7) 0%, rgba(3, 105, 161, 0.95) 100%);
+    }
+
     .tile-badge {
       position: absolute;
       top: 14px;
@@ -484,6 +539,10 @@ export interface WaitingRoomInfo {
       background: #7c3aed;
     }
 
+    .blue-badge {
+      background: #0284c7;
+    }
+
     .tile-icon-wrapper {
       margin-bottom: 12px;
     }
@@ -497,6 +556,12 @@ export interface WaitingRoomInfo {
     .tile-cuvinte .tile-icon {
       font-size: 3.5rem;
       color: #e9d5ff;
+      filter: drop-shadow(0 2px 8px rgba(0,0,0,0.6));
+    }
+
+    .tile-battleship .tile-icon {
+      font-size: 3.5rem;
+      color: #bae6fd;
       filter: drop-shadow(0 2px 8px rgba(0,0,0,0.6));
     }
 
@@ -548,6 +613,9 @@ export interface WaitingRoomInfo {
     }
     .play-cuvinte {
       background: linear-gradient(90deg, #8b5cf6, #7c3aed);
+    }
+    .play-battleship {
+      background: linear-gradient(90deg, #0284c7, #0369a1);
     }
 
     .btn-tile-play:hover {
@@ -822,6 +890,7 @@ export class LobbyComponent implements OnInit, OnDestroy {
   globalStatsAll: { [winner: string]: number } = {};
   globalStatsNumbers: { [winner: string]: number } = {};
   globalStatsWords: { [winner: string]: number } = {};
+  globalStatsBattleship: { [winner: string]: number } = {};
 
   private pollInterval: any = null;
 
@@ -857,13 +926,21 @@ export class LobbyComponent implements OnInit, OnDestroy {
       this.globalStatsAll = await this.gameSocket.getGlobalStats();
       this.globalStatsNumbers = await this.gameSocket.getGlobalStats('numbers');
       this.globalStatsWords = await this.gameSocket.getGlobalStats('words');
+      this.globalStatsBattleship = await this.gameSocket.getGlobalStats('battleship');
     } catch (e) {}
   }
 
   get currentStatsMap(): { [winner: string]: number } {
     if (this.activeStatsTab === 'numbers') return this.globalStatsNumbers;
     if (this.activeStatsTab === 'words') return this.globalStatsWords;
+    if (this.activeStatsTab === 'battleship') return this.globalStatsBattleship;
     return this.globalStatsAll;
+  }
+
+  getGameTypeName(gameType?: string): string {
+    if (gameType === 'battleship') return 'Bătălie Navală';
+    if (gameType === 'words') return 'Cuvinte 5';
+    return 'Cifre 4';
   }
 
   getSortedStats(): { name: string; wins: number }[] {

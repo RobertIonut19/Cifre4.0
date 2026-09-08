@@ -1,4 +1,4 @@
-import asyncio
+﻿import asyncio
 import json
 import secrets
 import uuid
@@ -11,9 +11,9 @@ from room_manager import RoomManager, Room
 from game_logic import validate_number
 from database import init_db, save_player, get_all_players, get_scores_stats
 
-app = FastAPI(title="4-Digit Number Guessing Game API")
+app = FastAPI(title="Multi-Game Arcade API (Numbers, Words, Battleship)")
 
-# Initialize SQLite database on startup
+# Initialize database schema on startup
 init_db()
 
 # Enable CORS for frontend integration
@@ -36,7 +36,7 @@ class SavePlayerRequest(BaseModel):
 
 @app.get("/")
 def read_root():
-    return {"status": "ok", "message": "Multi-Game API is running!"}
+    return {"status": "ok", "message": "Multi-Game Arcade API is running!"}
 
 @app.post("/api/rooms/create")
 def create_room(req: CreateRoomRequest):
@@ -81,9 +81,8 @@ def get_room_info(room_id: str):
 
 
 async def broadcast_room_state(room: Room):
-    state = room.get_public_state("")
     for pid, pinfo in list(room.players.items()):
-        ws: WebSocket = pinfo["websocket"]
+        ws: WebSocket = pinfo.get("websocket")
         if ws:
             p_state = room.get_public_state(pid)
             try:
@@ -93,7 +92,7 @@ async def broadcast_room_state(room: Room):
 
 async def broadcast_chat_message(room: Room, chat_entry: dict):
     for pid, pinfo in list(room.players.items()):
-        ws: WebSocket = pinfo["websocket"]
+        ws: WebSocket = pinfo.get("websocket")
         if ws:
             try:
                 await ws.send_text(json.dumps({"type": "CHAT_MESSAGE", "data": chat_entry}))
@@ -102,13 +101,19 @@ async def broadcast_chat_message(room: Room, chat_entry: dict):
 
 async def handle_bot_turn_if_needed(room: Room):
     if room.is_bot_game and room.state == "PLAYING" and room.current_turn == "BOT_AGENT":
-        import asyncio
-        await asyncio.sleep(1.2)
-        bot_guess = room.bot_agent.make_guess()
-        guess_res = room.process_guess("BOT_AGENT", bot_guess)
-        if guess_res:
-            room.bot_agent.process_feedback(bot_guess, guess_res["exact_matches"])
-            await broadcast_room_state(room)
+        await asyncio.sleep(1.0)
+        if room.game_type == "battleship":
+            bot_r, bot_c = room.bot_agent.choose_shot()
+            shot_res = room.process_battleship_shot("BOT_AGENT", bot_r, bot_c)
+            if shot_res:
+                room.bot_agent.register_shot_feedback(bot_r, bot_c, shot_res["result"], shot_res.get("is_sunk", False))
+                await broadcast_room_state(room)
+        else:
+            bot_guess = room.bot_agent.make_guess()
+            guess_res = room.process_guess("BOT_AGENT", bot_guess)
+            if guess_res:
+                room.bot_agent.process_feedback(bot_guess, guess_res["exact_matches"])
+                await broadcast_room_state(room)
 
 
 @app.websocket("/ws/{room_id}/{player_name}")
@@ -171,6 +176,38 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, player_name: st
                         "message": err_msg
                     }))
 
+            elif msg_type in ("SET_FLEET", "SET_BATTLESHIP_FLEET"):
+                fleet = payload.get("fleet", [])
+                success, msg_text = room.set_battleship_fleet(player_id, fleet)
+                if success:
+                    await broadcast_room_state(room)
+                    await handle_bot_turn_if_needed(room)
+                else:
+                    await websocket.send_text(json.dumps({
+                        "type": "ERROR",
+                        "message": msg_text
+                    }))
+
+            elif msg_type in ("BATTLESHIP_SHOT", "FIRE_SHOT"):
+                r = payload.get("r")
+                c = payload.get("c")
+                if room.current_turn != player_id:
+                    await websocket.send_text(json.dumps({
+                        "type": "ERROR",
+                        "message": "Nu este rândul tău să tragi!"
+                    }))
+                    continue
+
+                shot_res = room.process_battleship_shot(player_id, r, c)
+                if shot_res:
+                    await broadcast_room_state(room)
+                    await handle_bot_turn_if_needed(room)
+                else:
+                    await websocket.send_text(json.dumps({
+                        "type": "ERROR",
+                        "message": "Coordonată nevalidă sau ai tras deja acolo!"
+                    }))
+
             elif msg_type == "MAKE_GUESS":
                 guess_num = payload.get("guess", "")
                 if room.current_turn != player_id:
@@ -221,10 +258,8 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, player_name: st
         room.remove_player(player_id)
 
         if is_waiting:
-            # 2nd player has NOT joined yet. Creator/host left -> DELETE ROOM IMMEDIATELY!
             room_manager.cleanup_room(room_id, force=True)
         else:
-            # Game is in progress (2 players joined or bot game)!
             active_humans = [
                 pid for pid, pinfo in room.players.items()
                 if pid != "BOT_AGENT" and pinfo.get("websocket") is not None

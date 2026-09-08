@@ -270,7 +270,7 @@ export interface ScoreboardData {
           </div>
 
           <!-- Notes Panel Component (Shown for both Numbers & Words Games) -->
-          <app-notes-panel [gameType]="state.game_type || 'numbers'"></app-notes-panel>
+          <app-notes-panel [gameType]="state.game_type === 'words' ? 'words' : 'numbers'"></app-notes-panel>
         </div>
 
         <!-- Right Section: Chat at Top, Scoreboard from DB below -->
@@ -1430,9 +1430,9 @@ export class GameBoardComponent implements OnInit, DoCheck, OnDestroy {
       }
 
       const guessData = {
-        guess: g.guess,
-        exact_matches: g.exact_matches,
-        is_win: g.is_win,
+        guess: g.guess || '',
+        exact_matches: g.exact_matches || 0,
+        is_win: !!g.is_win,
         time_taken_seconds: g.time_taken_seconds
       };
 

@@ -1,19 +1,24 @@
 @echo off
 echo ========================================================
-echo   Pornire Rapidă Joc (Backend + Frontend)
+echo   Pornire Rapida Joc (Backend + Frontend)
 echo ========================================================
 
-:: Setare URL PostgreSQL
-set DATABASE_URL=postgresql://cifre_db_user:sBlu165teR2wKbhc1RRwS36K9jJXuGUr@dpg-d9urqvdbedkc73aul88g-a.frankfurt-postgres.render.com/cifre_db
+:: Eliberare port vechi 8005
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":8005" ^| findstr "LISTENING"') do (
+    taskkill /F /PID %%a >nul 2>&1
+)
 
-echo 1. Pornire Backend FastAPI (Instant)...
-start cmd /k "cd backend && set DATABASE_URL=postgresql://cifre_db_user:sBlu165teR2wKbhc1RRwS36K9jJXuGUr@dpg-d9urqvdbedkc73aul88g-a.frankfurt-postgres.render.com/cifre_db && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+:: Setare URL PostgreSQL Neon.tech
+set "DATABASE_URL=postgresql://neondb_owner:npg_tMoUyqxAEm02@ep-floral-wildflower-ay0ne7ug-pooler.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require"
 
-echo 2. Pornire Frontend Angular (Instant)...
-start cmd /k "cd frontend && npm start"
+echo 1. Pornire Backend FastAPI (Port 8005)...
+start "Backend FastAPI (Port 8005)" cmd /k "cd backend && set \"DATABASE_URL=postgresql://neondb_owner:npg_tMoUyqxAEm02@ep-floral-wildflower-ay0ne7ug-pooler.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require\" && python -m uvicorn main:app --host 0.0.0.0 --port 8005 --reload"
+
+echo 2. Pornire Frontend Angular...
+start "Frontend Angular (Port 4300)" cmd /k "cd frontend && npm start"
 
 echo.
-echo Backend Python: http://localhost:8000
+echo Backend Python: http://localhost:8005
 echo Frontend Angular: http://localhost:4300
 echo.
 pause

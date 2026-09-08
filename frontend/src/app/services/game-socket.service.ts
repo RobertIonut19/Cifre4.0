@@ -2,10 +2,46 @@ import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, firstValueFrom } from 'rxjs';
 
+export interface BattleshipShip {
+  id: string;
+  name: string;
+  icon: string;
+  size: number;
+  r: number;
+  c: number;
+  orientation: 'H' | 'V';
+  cells?: [number, number][];
+}
+
+export interface BattleshipShot {
+  player_id: string;
+  player_name: string;
+  r: number;
+  c: number;
+  coord: string;
+  result: 'HIT' | 'MISS' | 'SUNK';
+  ship_name?: string;
+  ship_icon?: string;
+  ship_id?: string;
+  is_sunk?: boolean;
+  sunk_cells?: [number, number][];
+  time_taken_seconds?: number;
+  turn_number?: number;
+}
+
+export interface BattleshipStateData {
+  my_fleet: BattleshipShip[];
+  my_shots: BattleshipShot[];
+  opponent_shots: BattleshipShot[];
+  my_sunk_ships: string[];
+  opponent_sunk_ships: string[];
+  ship_definitions: { id: string; name: string; icon: string; size: number }[];
+}
+
 export interface GameState {
   room_id: string;
   is_bot_game: boolean;
-  game_type?: 'numbers' | 'words';
+  game_type?: 'numbers' | 'words' | 'battleship';
   state: 'WAITING_FOR_PLAYERS' | 'WAITING_FOR_SECRETS' | 'PLAYING' | 'FINISHED' | 'PLAYER_DISCONNECTED';
   current_turn: string | null;
   current_turn_name: string | null;
@@ -14,13 +50,17 @@ export interface GameState {
   guesses_history: Array<{
     player_id: string;
     player_name: string;
-    guess: string;
-    exact_matches: number;
-    is_win: boolean;
+    guess?: string;
+    exact_matches?: number;
+    is_win?: boolean;
     turn_number: number;
     round_number?: number;
     turn_in_round?: number;
     time_taken_seconds?: number;
+    // Battleship fields
+    coord?: string;
+    result?: string;
+    ship_name?: string;
   }>;
   past_games_history?: Array<{
     game_number: number;
@@ -31,6 +71,7 @@ export interface GameState {
   }>;
   winner: string | null;
   winner_name: string | null;
+  battleship?: BattleshipStateData;
 }
 
 export interface ChatMessage {
@@ -58,8 +99,8 @@ export class GameSocketService {
     const port = window.location.port;
 
     // Local Angular dev server (e.g. ng serve on port 4300 or 4200)
-    if (port === '4300' || port === '4200' || port === '8000') {
-      return `${hostname}:8000`;
+    if (port === '4300' || port === '4200' || port === '8005' || port === '8000') {
+      return `${hostname}:8005`;
     }
 
     // Production environment (Render.com cloud deployment)
@@ -189,6 +230,24 @@ export class GameSocketService {
       this.socket.send(JSON.stringify({
         type: 'SET_SECRET',
         payload: { secret }
+      }));
+    }
+  }
+
+  setBattleshipFleet(fleet: BattleshipShip[]) {
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      this.socket.send(JSON.stringify({
+        type: 'SET_FLEET',
+        payload: { fleet }
+      }));
+    }
+  }
+
+  fireBattleshipShot(r: number, c: number) {
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      this.socket.send(JSON.stringify({
+        type: 'BATTLESHIP_SHOT',
+        payload: { r, c }
       }));
     }
   }
