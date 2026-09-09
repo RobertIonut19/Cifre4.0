@@ -1,12 +1,25 @@
 import os
+from pathlib import Path
 import psycopg2
 from typing import List, Dict
 
-# Pure PostgreSQL Database Connection
-DEFAULT_PG_URL = "postgresql://neondb_owner:npg_tMoUyqxAEm02@ep-floral-wildflower-ay0ne7ug-pooler.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+# Incarcare automata a variabilelor din backend/.env daca exista
+_env_path = Path(__file__).parent / ".env"
+if _env_path.exists():
+    with open(_env_path, "r", encoding="utf-8") as _f:
+        for _line in _f:
+            _line = _line.strip()
+            if _line and not _line.startswith("#") and "=" in _line:
+                _k, _v = _line.split("=", 1)
+                _k = _k.strip()
+                _v = _v.strip().strip('"').strip("'")
+                if _k not in os.environ:
+                    os.environ[_k] = _v
 
 def get_connection():
-    url = os.getenv("DATABASE_URL", DEFAULT_PG_URL)
+    url = os.getenv("DATABASE_URL")
+    if not url:
+        raise ValueError("Variabila DATABASE_URL nu este setata in backend/.env!")
     if url.startswith("postgres://"):
         url = url.replace("postgres://", "postgresql://", 1)
     return psycopg2.connect(url, connect_timeout=5)

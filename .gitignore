@@ -40,5 +40,10 @@ Thumbs.db
 
 # Local Environment & Temp
 .env
+.env.*
+*.env
+backend/.env
 .env.local
+*.local
 *.log
+
