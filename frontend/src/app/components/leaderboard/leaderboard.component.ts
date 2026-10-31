@@ -38,6 +38,12 @@ import { GameSocketService } from '../../services/game-socket.service';
             (click)="setTab('words')">
             <i class="fa-solid fa-font"></i> Cuvinte 5
           </button>
+          <button 
+            class="cat-tab-btn" 
+            [class.active]="selectedTab === 'battleship'" 
+            (click)="setTab('battleship')">
+            <i class="fa-solid fa-ship"></i> Bătălie Navală
+          </button>
         </div>
 
         <!-- PODIUM FOR TOP 3 PLAYERS -->
@@ -96,8 +102,8 @@ import { GameSocketService } from '../../services/game-socket.service';
         </div>
 
         <div *ngIf="sortedStats.length === 0" class="empty-stats-card">
-          <i class="fa-solid fa-medal empty-icon"></i>
-          <h3>Nicio victorie înregistrată încă</h3>
+          <i class="fa-solid empty-icon" [ngClass]="emptyStateIcon"></i>
+          <h3>{{ emptyStateTitle }}</h3>
           <p>Joacă meciuri 1v1 sau vs Bot pentru a urca în clasament!</p>
         </div>
 
@@ -114,7 +120,7 @@ import { GameSocketService } from '../../services/game-socket.service';
 
     .leaderboard-hero-card {
       width: 100%;
-      max-width: 820px;
+      max-width: 860px;
       padding: 36px 30px;
       background: rgba(15, 23, 42, 0.78);
       backdrop-filter: blur(16px);
@@ -160,18 +166,20 @@ import { GameSocketService } from '../../services/game-socket.service';
       justify-content: center;
       gap: 8px;
       background: rgba(255, 255, 255, 0.08);
-      padding: 4px;
+      padding: 6px;
       border-radius: var(--radius-md);
       margin-bottom: 28px;
+      flex-wrap: wrap;
     }
 
     .cat-tab-btn {
-      flex: 1;
-      max-width: 200px;
-      padding: 10px 16px;
+      flex: 1 1 140px;
+      max-width: 195px;
+      min-width: 125px;
+      padding: 10px 14px;
       background: transparent;
       border: none;
-      font-size: 0.95rem;
+      font-size: 0.92rem;
       font-weight: 700;
       color: #cbd5e1;
       border-radius: 6px;
@@ -356,6 +364,7 @@ export class LeaderboardComponent implements OnInit {
   statsAll: { [name: string]: number } = {};
   statsNumbers: { [name: string]: number } = {};
   statsWords: { [name: string]: number } = {};
+  statsBattleship: { [name: string]: number } = {};
 
   constructor(public gameSocket: GameSocketService) {}
 
@@ -368,6 +377,7 @@ export class LeaderboardComponent implements OnInit {
       this.statsAll = await this.gameSocket.getGlobalStats();
       this.statsNumbers = await this.gameSocket.getGlobalStats('numbers');
       this.statsWords = await this.gameSocket.getGlobalStats('words');
+      this.statsBattleship = await this.gameSocket.getGlobalStats('battleship');
     } catch (e) {}
   }
 
@@ -378,6 +388,7 @@ export class LeaderboardComponent implements OnInit {
   get currentStatsMap(): { [name: string]: number } {
     if (this.selectedTab === 'numbers') return this.statsNumbers;
     if (this.selectedTab === 'words') return this.statsWords;
+    if (this.selectedTab === 'battleship') return this.statsBattleship;
     return this.statsAll;
   }
 
@@ -389,5 +400,19 @@ export class LeaderboardComponent implements OnInit {
 
   get topThree(): { name: string; wins: number }[] {
     return this.sortedStats.slice(0, 3);
+  }
+
+  get emptyStateIcon(): string {
+    if (this.selectedTab === 'battleship') return 'fa-ship';
+    if (this.selectedTab === 'words') return 'fa-font';
+    if (this.selectedTab === 'numbers') return 'fa-calculator';
+    return 'fa-medal';
+  }
+
+  get emptyStateTitle(): string {
+    if (this.selectedTab === 'battleship') return 'Nicio victorie înregistrată la Bătălie Navală încă';
+    if (this.selectedTab === 'words') return 'Nicio victorie înregistrată la Cuvinte 5 încă';
+    if (this.selectedTab === 'numbers') return 'Nicio victorie înregistrată la Cifre 4 încă';
+    return 'Nicio victorie înregistrată încă';
   }
 }

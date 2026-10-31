@@ -47,13 +47,17 @@ def init_db():
                 game_type VARCHAR(50) DEFAULT 'numbers',
                 winner_name VARCHAR(255) NOT NULL,
                 total_rounds INT,
-                p1_secret VARCHAR(50),
-                p2_secret VARCHAR(50),
+                p1_secret VARCHAR(255),
+                p2_secret VARCHAR(255),
                 played_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         """)
-        cursor.execute("ALTER TABLE matches ADD COLUMN IF NOT EXISTS p1_secret VARCHAR(50);")
-        cursor.execute("ALTER TABLE matches ADD COLUMN IF NOT EXISTS p2_secret VARCHAR(50);")
+        cursor.execute("ALTER TABLE matches ADD COLUMN IF NOT EXISTS p1_secret VARCHAR(255);")
+        cursor.execute("ALTER TABLE matches ADD COLUMN IF NOT EXISTS p2_secret VARCHAR(255);")
+        cursor.execute("ALTER TABLE matches ALTER COLUMN p1_secret TYPE VARCHAR(255);")
+        cursor.execute("ALTER TABLE matches ALTER COLUMN p2_secret TYPE VARCHAR(255);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_matches_game_type ON matches(game_type);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_matches_winner_name ON matches(winner_name);")
 
         conn.commit()
         conn.close()
@@ -91,9 +95,11 @@ def save_match(room_id: str, winner_name: str, total_rounds: int, game_type: str
     try:
         conn = get_connection()
         cursor = conn.cursor()
+        clean_p1 = str(p1_secret)[:255] if p1_secret else None
+        clean_p2 = str(p2_secret)[:255] if p2_secret else None
         cursor.execute(
             "INSERT INTO matches (room_id, winner_name, total_rounds, game_type, p1_secret, p2_secret) VALUES (%s, %s, %s, %s, %s, %s)",
-            (room_id, winner_name, total_rounds, game_type, p1_secret, p2_secret)
+            (room_id, winner_name, total_rounds, game_type, clean_p1, clean_p2)
         )
         conn.commit()
         conn.close()
@@ -104,7 +110,7 @@ def get_scores_stats(game_type: str = None) -> Dict[str, int]:
     try:
         conn = get_connection()
         cursor = conn.cursor()
-        if game_type:
+        if game_type and game_type.upper() != "ALL":
             cursor.execute("SELECT winner_name, COUNT(*) FROM matches WHERE game_type = %s GROUP BY winner_name", (game_type,))
         else:
             cursor.execute("SELECT winner_name, COUNT(*) FROM matches GROUP BY winner_name")

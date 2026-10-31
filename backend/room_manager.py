@@ -319,8 +319,6 @@ class Room:
         p2_secret = self.players[p2_id]["secret"] if (p2_id and p2_id in self.players) else None
 
         should_save = True
-        if self.is_bot_game and self.winner != "BOT_AGENT":
-            should_save = False
 
         if should_save:
             try:
